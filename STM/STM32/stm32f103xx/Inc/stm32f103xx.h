@@ -8,6 +8,7 @@
 #ifndef STM32F103XX_H_
 #define STM32F103XX_H_
 
+#include <stddef.h>
 #include<stdint.h>
 #define FLASH_ADDRESS	  0x40000000U
 //RCC_ADDRESS

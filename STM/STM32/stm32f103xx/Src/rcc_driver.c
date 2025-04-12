@@ -11,72 +11,71 @@ void RCC_ConfigClock(RCC_Handle_t* hRcc) {
 
     if (hRcc == NULL) return;
 
-    // 1. Kiểm tra và bật nguồn xung
+    // 1. Bật xung HSE hoặc HSI
     if (hRcc->Config.clk_src == RCC_CLK_HSE || hRcc->Config.pll_src == RCC_PLL_SRC_HSE) {
-        RCC->CR |= RCC_CR_HSEON;
-        while (!(RCC->CR & RCC_CR_HSERDY));
+        RCC->CR |= (1 << 16); // HSEON
+        while (!(RCC->CR & (1 << 17))); // HSERDY
     } else if (hRcc->Config.clk_src == RCC_CLK_HSI || hRcc->Config.pll_src == RCC_PLL_SRC_HSI_DIV2) {
-        RCC->CR |= RCC_CR_HSION;
-        while (!(RCC->CR & RCC_CR_HSIRDY));
+        RCC->CR |= (1 << 0); // HSION
+        while (!(RCC->CR & (1 << 1))); // HSIRDY
     } else {
         return;
     }
 
+    // 2. Nếu dùng PLL
     if (hRcc->Config.clk_src == RCC_CLK_PLL) {
-         if (hRcc->Config.pll_mul < 0b0000 || hRcc->Config.pll_mul > 0b1111) return;
+        if (hRcc->Config.pll_mul < 0b0000 || hRcc->Config.pll_mul > 0b1110) return;
 
-         // Set PLL nguồn
-         uint32_t input_clk = 0;
-         if (hRcc->Config.pll_src == RCC_PLL_SRC_HSE) {
-             RCC->CFGR |= RCC_CFGR_PLLSRC;
-             input_clk = 8000000; // ví dụ HSE là 8 MHz
-         } else if (hRcc->Config.pll_src == RCC_PLL_SRC_HSI_DIV2) {
-             RCC->CFGR &= ~RCC_CFGR_PLLSRC;
-             input_clk = 8000000 / 2;
-         } else {
-             return;
-         }
+        uint32_t input_clk = 0;
 
-         // Set PLL multiplier
-         RCC->CFGR &= ~(0xF << 18);
-         RCC->CFGR |= (hRcc->Config.pll_mul << 18);
+        if (hRcc->Config.pll_src == RCC_PLL_SRC_HSE) {
+            RCC->CFGR |= (1 << 16); // PLLSRC = HSE
+            input_clk = 8000000; // giả định HSE = 8MHz
+        } else if (hRcc->Config.pll_src == RCC_PLL_SRC_HSI_DIV2) {
+            RCC->CFGR &= ~(1 << 16); // PLLSRC = HSI/2
+            input_clk = 8000000 / 2;
+        } else {
+            return;
+        }
 
-         RCC->CR |= RCC_CR_PLLON;
-         while (!(RCC->CR & RCC_CR_PLLRDY));
+        RCC->CFGR &= ~(0xF << 18); // clear PLLMUL bits
+        RCC->CFGR |= (hRcc->Config.pll_mul << 18);
 
-         SystemCoreClock = input_clk * (hRcc->Config.pll_mul + 2); // theo datasheet: x2~x16 tương ứng 0b0000 ~ 0b1110
-     }
-     else if (hRcc->Config.clk_src == RCC_CLK_HSE) {
-         SystemCoreClock = 8000000;
-     }
-     else if (hRcc->Config.clk_src == RCC_CLK_HSI) {
-         SystemCoreClock = 8000000;
-     }
-     else {
-         return;
-     }
+        RCC->CR |= (1 << 24); // PLLON
+        while (!(RCC->CR & (1 << 25))); // PLLRDY
 
+        SystemCoreClock = input_clk * (hRcc->Config.pll_mul + 2);
+    }
+    else if (hRcc->Config.clk_src == RCC_CLK_HSE) {
+        SystemCoreClock = 8000000;
+    }
+    else if (hRcc->Config.clk_src == RCC_CLK_HSI) {
+        SystemCoreClock = 8000000;
+    }
+    else {
+        return;
+    }
 
-    // 3. AHB, APB1, APB2 prescaler
+    // 3. Thiết lập các prescaler
     if (hRcc->Config.ahb_prescaler > 0xF || hRcc->Config.apb1_prescaler > 0x7 || hRcc->Config.apb2_prescaler > 0x7)
         return;
 
-    RCC->CFGR &= ~(0xF << 4);  // AHB
+    RCC->CFGR &= ~(0xF << 4); // AHB prescaler
     RCC->CFGR |= (hRcc->Config.ahb_prescaler << 4);
 
-    RCC->CFGR &= ~(0x7 << 8);  // APB1
+    RCC->CFGR &= ~(0x7 << 8); // APB1
     RCC->CFGR |= (hRcc->Config.apb1_prescaler << 8);
 
     RCC->CFGR &= ~(0x7 << 11); // APB2
     RCC->CFGR |= (hRcc->Config.apb2_prescaler << 11);
 
-    // 4. Set clock chính
+    // 4. Chọn nguồn clock chính
     RCC->CFGR &= ~(0x3 << 0);
     RCC->CFGR |= (hRcc->Config.clk_src << 0);
 
-    // 5. Chờ xác nhận
-    while (((RCC->CFGR >> 2) & 0x3) != hRcc->Config.clk_src);
+    while (((RCC->CFGR >> 2) & 0x3) != hRcc->Config.clk_src); // chờ SWS = clk_src
 
+    // 5. Cập nhật clock nội bộ
     uint8_t ahb_shift = (hRcc->Config.ahb_prescaler >= 0x8) ? (hRcc->Config.ahb_prescaler - 0x7) : 0;
     AHB_Clock = SystemCoreClock >> ahb_shift;
 
@@ -86,4 +85,3 @@ void RCC_ConfigClock(RCC_Handle_t* hRcc) {
     uint8_t apb2_shift = (hRcc->Config.apb2_prescaler >= 0x4) ? (hRcc->Config.apb2_prescaler - 0x3) : 0;
     APB2_Clock = AHB_Clock >> apb2_shift;
 }
-
