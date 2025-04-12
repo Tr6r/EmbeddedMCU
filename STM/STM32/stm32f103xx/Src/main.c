@@ -15,17 +15,44 @@
  *
  ******************************************************************************
  */
-
-#include <stdint.h>
 #include <stm32f103xx.h>
 #include <gpiox_driver.h>
-int main(void)
-{
-GPIO_Handle_t PC13 = GPIO_Init(GPIOC, 13, GPIO_MODE_OUTPUT, GPIO_SPEED_LOW, GPIO_PUSH_PULL);
-		GPIO_SetPin(&PC13);
-    /* Loop forever */
-	for(;;)
+#include <timerx_driver.h>
+#include <stepmotor_driver.h>
 
-	{
+void StepMotor_Main_Init(void);
+GPIO_Handle_t PA6;
+GPIO_Handle_t PA7;
+
+TIMER2_5_Handle_t Timer2;
+STEPMOTOR_Handle_t Stepmotor1;
+
+int main(void) {
+//GPIO_Handle_t PC13 = GPIO_Init(GPIOC, GPIO_PIN_13, GPIO_MODE_OUTPUT_10MHz,GPIO_CNF_OUTPUT_PP);
+	PA6 = GPIO_Init(GPIOA, GPIO_PIN_5, GPIO_MODE_OUTPUT_50MHz,
+			GPIO_CNF_OUTPUT_PP);
+	PA7= GPIO_Init(GPIOB, GPIO_PIN_5, GPIO_MODE_OUTPUT_10MHz,
+			GPIO_CNF_OUTPUT_PP);
+//GPIO_Handle_t PA6 = GPIO_Init(GPIOA, GPIO_PIN_6, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_PP);
+	Timer2 = TIMER2_5_Init_Delay(TIMER2, 7999);
+	StepMotor_Main_Init();
+//TIMER2_5_Handle_t StepMotor1 = Init_StepMotor_Base(TIMER3, 500 ,  20);
+
+//Init_StepMotorChannel(TIMER3, TIM_CHANNEL_1, TIM_OCMODE_PWM1, 10);
+	/* Loop forever */
+	for (;;) {
+		StepMotor_SetDirection(&Stepmotor1, 0);
+		StepMotor_Rotate(&Stepmotor1, 180, 5);
+		TIMER2_5_Delay(&Timer2, 999);
+		StepMotor_SetDirection(&Stepmotor1, 1);
+		StepMotor_Rotate(&Stepmotor1, 180, 5);
+		TIMER2_5_Delay(&Timer2, 999);
+
+
 	}
+}
+
+void StepMotor_Main_Init(void)
+{
+	Stepmotor1 = StepMotor_Init(&Timer2, &PA6, &PA7);
 }
