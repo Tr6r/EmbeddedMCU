@@ -8,7 +8,7 @@
 
 #include "gpiox_driver.h"
 
-GPIO_Handle_t GPIO_Init(GPIO_TypeDef* Instance, uint8_t Pin, GPIO_Mode_t Mode, GPIO_Speed_t Speed, GPIO_Pull_t Pull)
+GPIO_Handle_t GPIO_Init(GPIO_TypeDef* Instance, GPIO_Pin_t Pin, GPIO_Mode_t Mode, GPIO_CNF_t CNF)
 {
     GPIO_Handle_t hGPIO;
 
@@ -16,8 +16,7 @@ GPIO_Handle_t GPIO_Init(GPIO_TypeDef* Instance, uint8_t Pin, GPIO_Mode_t Mode, G
     hGPIO.Instance = Instance;
     hGPIO.GPIO_Config.Pin = Pin;
     hGPIO.GPIO_Config.Mode = Mode;
-    hGPIO.GPIO_Config.Speed = Speed;
-    hGPIO.GPIO_Config.Pull = Pull;
+    hGPIO.GPIO_Config.CNF = CNF;
 
     // Enable clock cho GPIO
     if (Instance == GPIOA) GPIOA_EN_CLOCK();
@@ -30,41 +29,28 @@ GPIO_Handle_t GPIO_Init(GPIO_TypeDef* Instance, uint8_t Pin, GPIO_Mode_t Mode, G
 
 
     // Xác định chế độ (Mode) cho pin
-    if (Mode == GPIO_MODE_INPUT)
-    {
+    if (Pin < 8) {
+           // Cấu hình CRL cho Pin 0-7
+           Instance->CRL &= ~(0xF << (Pin * 4));  // Clear previous settings
+           Instance->CRL |= (Mode << (Pin * 4)); // Set mode (2 bit)
+           Instance->CRL |= (CNF << (Pin * 4 + 2)); // Set CNF (2 bit)
+	} else {
+           // Cấu hình CRH cho Pin 8-15
+           Instance->CRH &= ~(0xF << ((Pin - 8) * 4)); // Clear previous settings
+           Instance->CRH |= (Mode << ((Pin - 8) * 4)); // Set mode (2 bit)
+           Instance->CRH |= (CNF << ((Pin - 8) * 4 + 2)); // Set CNF (2 bit)
+       }
 
-    }
-    else if (Mode == GPIO_MODE_OUTPUT)
-    {
 
-    	if (Pin < 8)
-    	    {
-    			Instance->CRL |= (Speed << (Pin * 4));  // Set new speed bits
-    	        Instance->CRL |= (Pull << (Pin * 4 + 2));  // Set new speed bits
-
-
-    	    }
-    	    else
-    	    {
-    	        // Pin từ 8 đến 15 sử dụng CRH
-    	        Instance->CRH |= (Speed << ((Pin - 8) * 4));   // Set new mode bits
-    	        Instance->CRH &= ~(1 << ((Pin - 8) * 4 + 2));  // Set new speed bits
-
-    	        Instance->CRH |= (Pull << ((Pin - 8) * 4 + 2));  // Set new speed bits
-
-    	    }
-    }
 
     // Trả về GPIO Handle
     return hGPIO;
 }
-void GPIO_ClearPin(GPIO_Handle_t *xGPIO){
-	xGPIO->Instance->ODR |= (1 << xGPIO->GPIO_Config.Pin);  // Enable pull-up
+void GPIO_WritePin(GPIO_Handle_t *xGPIO,int flag)
+{
+	if (flag == 1)	xGPIO->Instance->ODR &= ~(1 << xGPIO->GPIO_Config.Pin);  // Enable pull-up
+	else 			xGPIO->Instance->ODR |= (1 << xGPIO->GPIO_Config.Pin);  // Enable pull-up
 
-}
-
-void GPIO_SetPin(GPIO_Handle_t *xGPIO){
-	xGPIO->Instance->ODR &= ~(1 << xGPIO->GPIO_Config.Pin);  // Enable pull-up
 
 }
 
