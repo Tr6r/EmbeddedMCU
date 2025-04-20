@@ -10,25 +10,35 @@
 
 #include <stddef.h>
 #include<stdint.h>
-#define FLASH_ADDRESS	  0x40000000U
+
+
+#define PERIPHERAL_ADDRESS	  0x40000000U
 //RCC_ADDRESS
-#define RCC_BASE_ADDRESS 		 (FLASH_ADDRESS + 0x00021000U)
+#define RCC_BASE_ADDRESS 		 (PERIPHERAL_ADDRESS + 0x00021000U)
 
 //GPIOx_ADDRESS
-#define GPIOA_ADDRESS    (FLASH_ADDRESS + 0x00010800U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
-#define GPIOB_ADDRESS    (FLASH_ADDRESS + 0x00010C00U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
-#define GPIOC_ADDRESS    (FLASH_ADDRESS + 0x00011000U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
-#define GPIOD_ADDRESS    (FLASH_ADDRESS + 0x00011400U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
-#define GPIOE_ADDRESS    (FLASH_ADDRESS + 0x00011800U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
-#define GPIOF_ADDRESS    (FLASH_ADDRESS + 0x00011C00U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
-#define GPIOG_ADDRESS    (FLASH_ADDRESS + 0x00012000U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
+#define GPIOA_ADDRESS    (PERIPHERAL_ADDRESS + 0x00010800U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
+#define GPIOB_ADDRESS    (PERIPHERAL_ADDRESS + 0x00010C00U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
+#define GPIOC_ADDRESS    (PERIPHERAL_ADDRESS + 0x00011000U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
+#define GPIOD_ADDRESS    (PERIPHERAL_ADDRESS + 0x00011400U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
+#define GPIOE_ADDRESS    (PERIPHERAL_ADDRESS + 0x00011800U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
+#define GPIOF_ADDRESS    (PERIPHERAL_ADDRESS + 0x00011C00U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
+#define GPIOG_ADDRESS    (PERIPHERAL_ADDRESS + 0x00012000U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
+
+//AFIO_ADDRESS
+#define AFIO_ADDRESS    (PERIPHERAL_ADDRESS + 0x00010000U)  // hoặc viết rõ địa chỉ gốc: 0x40011000U
 
 //Timerx_ADDRESS
 
-#define TIMER2_ADDRESS   (FLASH_ADDRESS)
-#define TIMER3_ADDRESS   (FLASH_ADDRESS + 0x00000400U)
-#define TIMER4_ADDRESS   (FLASH_ADDRESS + 0x00000800U)
-#define TIMER5_ADDRESS   (FLASH_ADDRESS + 0x00000C00U)
+#define TIMER2_ADDRESS   (PERIPHERAL_ADDRESS)
+#define TIMER3_ADDRESS   (PERIPHERAL_ADDRESS + 0x00000400U)
+#define TIMER4_ADDRESS   (PERIPHERAL_ADDRESS + 0x00000800U)
+#define TIMER5_ADDRESS   (PERIPHERAL_ADDRESS + 0x00000C00U)
+
+// EXTI ADDRESS
+#define EXTI_ADDRESS  	 (PERIPHERAL_ADDRESS + 0x00010400U)
+
+#define NVIC_ISER0 (*(volatile uint32_t*)0xE000E100)
 
 //struct GPIO
 
@@ -49,6 +59,45 @@ typedef struct {
 #define GPIOE ((GPIO_TypeDef *) GPIOE_ADDRESS)
 #define GPIOF ((GPIO_TypeDef *) GPIOF_ADDRESS)
 #define GPIOG ((GPIO_TypeDef *) GPIOG_ADDRESS)
+
+//ENUM DEFINE
+typedef enum {
+    EXTI_LINE_0  = 0,
+    EXTI_LINE_1  = 1,
+    EXTI_LINE_2  = 2,
+    EXTI_LINE_3  = 3,
+    EXTI_LINE_4  = 4,
+    EXTI_LINE_5  = 5,
+    EXTI_LINE_6  = 6,
+    EXTI_LINE_7  = 7,
+    EXTI_LINE_8  = 8,
+    EXTI_LINE_9  = 9,
+    EXTI_LINE_10 = 10,
+    EXTI_LINE_11 = 11,
+    EXTI_LINE_12 = 12,
+    EXTI_LINE_13 = 13,
+    EXTI_LINE_14 = 14,
+    EXTI_LINE_15 = 15
+} EXTI_Line_t;
+typedef enum {
+    GPIO_PORTSRC_A = 0,
+    GPIO_PORTSRC_B = 1,
+    GPIO_PORTSRC_C = 2,
+    GPIO_PORTSRC_D = 3,
+    GPIO_PORTSRC_E = 4
+} GPIO_PortSrc_t;
+
+
+// struct AFIO
+typedef struct {
+    volatile uint32_t EVCR;       // Event Control Register                (Offset: 0x00)
+    volatile uint32_t MAPR;       // AF remap and debug I/O configuration (Offset: 0x04)
+    volatile uint32_t EXTICR[4];  // External interrupt configuration      (Offset: 0x08 - 0x14)
+    volatile uint32_t MAPR2;      // AF remap and debug I/O configuration 2 (Offset: 0x1C)
+} AFIO_TypeDef_t;
+
+
+#define AFIO ((AFIO_TypeDef_t *) AFIO_ADDRESS)
 
 
 //RCC Define
@@ -74,6 +123,8 @@ typedef struct {
 #define RCC ((RCC_TypeDef_t *) RCC_BASE_ADDRESS)
 
 //GPIOx_Conttrol_Clock
+#define AFIO_EN_CLOCK()  (RCC->APB2ENR |= (1 << 0))
+
 #define GPIOA_EN_CLOCK()  (RCC->APB2ENR |= (1 << 2))  // Enable clock for GPIOA
 #define GPIOB_EN_CLOCK()  (RCC->APB2ENR |= (1 << 3))  // Enable clock for GPIOB
 #define GPIOC_EN_CLOCK()  (RCC->APB2ENR |= (1 << 4))  // Enable clock for GPIOC
@@ -81,6 +132,8 @@ typedef struct {
 #define GPIOE_EN_CLOCK()  (RCC->APB2ENR |= (1 << 6))  // Enable clock for GPIOE
 #define GPIOF_EN_CLOCK()  (RCC->APB2ENR |= (1 << 7))  // Enable clock for GPIOF
 #define GPIOG_EN_CLOCK()  (RCC->APB2ENR |= (1 << 8))  // Enable clock for GPIOG
+
+#define AFIO_DIS_CLOCK()  (RCC->APB2ENR &= ~(1 << 0))
 
 #define GPIOA_DIS_CLOCK()  (RCC->APB2ENR &= ~(1 << 2))  // Disable clock for GPIOA
 #define GPIOB_DIS_CLOCK()  (RCC->APB2ENR &= ~(1 << 3))  // Disable clock for GPIOB
@@ -130,5 +183,19 @@ typedef struct
 #define TIMER3 ((TIMER2_5_TypeDef_t *)TIMER3_ADDRESS)
 #define TIMER4 ((TIMER2_5_TypeDef_t *)TIMER4_ADDRESS)
 #define TIMER5 ((TIMER2_5_TypeDef_t *)TIMER5_ADDRESS)
+
+
+//Struct EXTI
+typedef struct
+{
+    volatile uint32_t IMR;     // Interrupt mask register (0x00)
+    volatile uint32_t EMR;     // Event mask register (0x04)
+    volatile uint32_t RTSR;    // Rising trigger selection register (0x08)
+    volatile uint32_t FTSR;    // Falling trigger selection register (0x0C)
+    volatile uint32_t SWIER;   // Software interrupt event register (0x10)
+    volatile uint32_t PR;      // Pending register (0x14)
+} EXTI_TypeDef_t;
+#define EXTI ((EXTI_TypeDef_t *)EXTI_ADDRESS)
+
 
 #endif /* STM32F103XX_H_ */
