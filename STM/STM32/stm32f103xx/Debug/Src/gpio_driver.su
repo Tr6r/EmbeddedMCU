@@ -1,3 +1,0 @@
-../Src/gpio_driver.c:11:15:GPIO_Init	32	static
-../Src/gpio_driver.c:61:6:GPIO_ClearPin	16	static
-../Src/gpio_driver.c:66:6:GPIO_SetPin	16	static
