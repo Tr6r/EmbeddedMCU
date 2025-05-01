@@ -53,7 +53,7 @@
 #define I2C2_ADDRESS 	(PERIPHERAL_ADDRESS + 0x00005800U)
 
 
-
+#define FLASH_BASE        (0x40022000UL) /*!< Base address of FLASH registers */
 //struct GPIO
 
 typedef struct {
@@ -74,6 +74,13 @@ typedef struct {
 #define GPIOF ((GPIO_TypeDef *) GPIOF_ADDRESS)
 #define GPIOG ((GPIO_TypeDef *) GPIOG_ADDRESS)
 
+//
+typedef enum {
+	STATE_OK,     // Thành công
+	STATE_ERROR   // Lỗi
+} State_t;
+
+
 //ENUM DEFINE
 typedef enum {
 	EXTI_LINE_0 = 0,
@@ -93,6 +100,9 @@ typedef enum {
 	EXTI_LINE_14 = 14,
 	EXTI_LINE_15 = 15
 } EXTI_Line_t;
+
+
+
 typedef enum {
 	GPIO_PORTSRC_A = 0,
 	GPIO_PORTSRC_B = 1,
@@ -150,18 +160,23 @@ typedef struct {
 #define GPIOF_DIS_CLOCK()  	(RCC->APB2ENR &= ~(1 << 7))  // Disable clock for GPIOF
 #define GPIOG_DIS_CLOCK()  	(RCC->APB2ENR &= ~(1 << 8))  // Disable clock for GPIOG
 
+//AFIO Control CLock
+
+#define AFIO_EN_CLOCK() (RCC->APB2ENR |= (1 << 0))
+#define AFIO_DIS_CLOCK() (RCC->APB2ENR &= ~(1 << 0))
+
 //USARTx_Control_Clock
 #define USART1_EN_CLOCK()  	(RCC->APB2ENR |= (1 << 14))
-#define USART2_EN_CLOCK()  	(RCC->APB2ENR |= (1 << 17))
-#define USART3_EN_CLOCK()  	(RCC->APB2ENR |= (1 << 18))
-#define UART4_EN_CLOCK()   	(RCC->APB2ENR |= (1 << 19))
-#define UART5_EN_CLOCK()   	(RCC->APB2ENR |= (1 << 20))
+#define USART2_EN_CLOCK()  	(RCC->APB1ENR |= (1 << 17))
+#define USART3_EN_CLOCK()  	(RCC->APB1ENR |= (1 << 18))
+#define UART4_EN_CLOCK()   	(RCC->APB1ENR |= (1 << 19))
+#define UART5_EN_CLOCK()   	(RCC->APB1ENR |= (1 << 20))
 
 #define USART1_DIS_CLOCK()  (RCC->APB2ENR &= ~(1 << 14))
-#define USART2_DIS_CLOCK()  (RCC->APB2ENR &= ~(1 << 17))
-#define USART3_DIS_CLOCK()  (RCC->APB2ENR &= ~(1 << 18))
-#define UART4_DIS_CLOCK()   (RCC->APB2ENR &= ~(1 << 19))
-#define UART5_DIS_CLOCK()   (RCC->APB2ENR &= ~(1 << 20))
+#define USART2_DIS_CLOCK()  (RCC->APB1ENR &= ~(1 << 17))
+#define USART3_DIS_CLOCK()  (RCC->APB1ENR &= ~(1 << 18))
+#define UART4_DIS_CLOCK()   (RCC->APB1ENR &= ~(1 << 19))
+#define UART5_DIS_CLOCK()   (RCC->APB1ENR &= ~(1 << 20))
 
 //I2C_Control_Clock
 #define I2C1_EN_CLOCK()  (RCC->APB1ENR |= (1 << 21))  // Enable clock for GPIOA
@@ -254,8 +269,23 @@ typedef struct {
 } I2C_TypeDef_t;
 
 
-#define I2C1 ((I2C_TypeDef_t)* I2C1_ADDRESS)
-#define I2C2 ((I2C_TypeDef_t)* I2C2_ADDRESS)
+#define I2C1 ((I2C_TypeDef_t*) I2C1_ADDRESS)
+#define I2C2 ((I2C_TypeDef_t*) I2C2_ADDRESS)
+
+typedef struct
+{
+  volatile uint32_t ACR;      /*!< FLASH access control register,       Address offset: 0x00 */
+  volatile uint32_t KEYR;     /*!< FLASH key register,                  Address offset: 0x04 */
+  volatile uint32_t OPTKEYR;  /*!< FLASH option key register,           Address offset: 0x08 */
+  volatile uint32_t SR;       /*!< FLASH status register,               Address offset: 0x0C */
+  volatile uint32_t CR;       /*!< FLASH control register,              Address offset: 0x10 */
+  volatile uint32_t AR;       /*!< FLASH address register,              Address offset: 0x14 */
+  volatile uint32_t RESERVED; /*!< Reserved, 0x18 */
+  volatile uint32_t OBR;      /*!< FLASH Option byte register,          Address offset: 0x1C */
+  volatile uint32_t WRPR;     /*!< FLASH Write protection register,     Address offset: 0x20 */
+} FLASH_TypeDef_t;
+
+#define FLASH             ((FLASH_TypeDef_t *) FLASH_BASE)
 
 
 #endif /* STM32F103XX_H_ */
