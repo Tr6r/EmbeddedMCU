@@ -45,6 +45,7 @@ I2C_Handle_t I2C_Init(I2C_TypeDef_t *Instance, uint32_t ClockSpeed,
 		I2C_AddressingMode_t AddressingMode, uint8_t OwnAddress,
 		I2C_Acknowledge_t Acknowledge, I2C_DutyCycle_t DutyCycle) ;
 void I2C_ScanDevices(I2C_Handle_t *hi2c, USART_Handle_t *hUsartx);
+State_t I2C_Write(I2C_Handle_t *hi2c, uint8_t Address, uint8_t *data, uint16_t size);
 
 
 #endif /* I2C_DRIVER_H_ */

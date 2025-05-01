@@ -11,6 +11,7 @@
 #include "stm32f103xx.h"
 
 typedef enum {
+    AFIO_FUNC_NONE = 0,
     AFIO_FUNC_EXTI,
     AFIO_FUNC_REMAP,
     AFIO_FUNC_JTAG_CFG

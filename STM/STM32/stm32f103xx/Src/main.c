@@ -16,43 +16,131 @@
  ******************************************************************************
  */
 #include <stm32f103xx.h>
-#include <gpiox_driver.h>
 #include <timerx_driver.h>
-#include <stepmotor_driver.h>
+#include <gpiox_driver.h>
+#include <usart_driver.h>
+#include <rcc_driver.h>
 
-void StepMotor_Main_Init(void);
-GPIO_Handle_t PA6;
-GPIO_Handle_t PA7;
+void Usart_Init(void);
+//void ic_Init(void);
+void lcd2002_Init(void);
+void Encorder_Init(void);
+void SysClock_Init(void);
+USART_Handle_t Usart1;
+GPIO_Handle_t Tx, Sda, Scl;
+GPIO_Handle_t EnA, EnB;
+RCC_Handle_t hRcc;
 
+//I2C_Handle_t I2c1;
 TIMER2_5_Handle_t Timer2;
-STEPMOTOR_Handle_t Stepmotor1;
-
+//LCD_Handle_t lcd;
 int main(void) {
-//GPIO_Handle_t PC13 = GPIO_Init(GPIOC, GPIO_PIN_13, GPIO_MODE_OUTPUT_10MHz,GPIO_CNF_OUTPUT_PP);
-	PA6 = GPIO_Init(GPIOA, GPIO_PIN_5, GPIO_MODE_OUTPUT_50MHz,
+	GPIO_Handle_t PC13 = GPIO_Init(GPIOC, GPIO_PIN_13, GPIO_MODE_OUTPUT_10MHz,
 			GPIO_CNF_OUTPUT_PP);
-	PA7= GPIO_Init(GPIOB, GPIO_PIN_5, GPIO_MODE_OUTPUT_10MHz,
-			GPIO_CNF_OUTPUT_PP);
-//GPIO_Handle_t PA6 = GPIO_Init(GPIOA, GPIO_PIN_6, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_PP);
-	Timer2 = TIMER2_5_Init_Delay(TIMER2, 7999);
-	StepMotor_Main_Init();
-//TIMER2_5_Handle_t StepMotor1 = Init_StepMotor_Base(TIMER3, 500 ,  20);
+	SysClock_Init();
+	Timer2 = TIMER2_5_Init_Delay(TIMER2, 719999);
+	Usart_Init();
+//	ic_Init();
+//	char message[] = "hello";
 
-//Init_StepMotorChannel(TIMER3, TIM_CHANNEL_1, TIM_OCMODE_PWM1, 10);
-	/* Loop forever */
+//	I2C_ScanDevices(&I2c1, &Usart1);
+
+//	lcd2002_Init();
+//	AFIO_Handle_t AFA0;
+//	AFA0.Constance = AFIO;
+//	AFA0.Config.EXTI_Line= EXTI_LINE_0;
+//	AFA0.Config.Function = AFIO_FUNC_EXTI;
+//	AFA0.Config.GPIO_PortSrc = GPIO_PORTSRC_A;
+//	AFIO_Init(&AFA0);
+//	EXTI_Handle_t EXTI0;
+//	EXTI0.Constance = EXTI;
+//	EXTI0.Config.EXTI_Line = EXTI_LINE_0;
+//	EXTI0.Config.PortSrc = GPIO_PORTSRC_A;
+//	EXTI0.Config.Trigger = EXTI_TRIGGER_BOTH;
+//	EXTI_Init(&EXTI0);
+
+//	USART_SendString(&Usart1, "hehe\n");
+
 	for (;;) {
-		StepMotor_SetDirection(&Stepmotor1, 0);
-		StepMotor_Rotate(&Stepmotor1, 180, 5);
-		TIMER2_5_Delay(&Timer2, 999);
-		StepMotor_SetDirection(&Stepmotor1, 1);
-		StepMotor_Rotate(&Stepmotor1, 180, 5);
-		TIMER2_5_Delay(&Timer2, 999);
+//		LCD_SendData(&lcd, 'H');
+//		State_t ret = I2C_Write(&I2c1, 0x27, (uint8_t *)message,  strlen(message));  // Gửi dữ liệu đến Arduino
+//		if (ret == STATE_OK)
+//		{
+//			GPIO_Toggle(GPIOB, GPIO_PIN_7);
+//		}
+//		else GPIO_WritePin(&Sda, GPIO_HIGH);
+//
+		GPIO_Toggle(GPIOC, GPIO_PIN_13);
+		USART_SendString(&Usart1, "hehe\n");
 
+		TIMER2_5_Delay(&Timer2, 1000);
+//
+//		TIMER2_5_Delay(&Timer2, 999);
+
+//		if (GPIOA->IDR & (1 << 0))  // Nếu PA0 có giá trị 1 (nút bấm được nhấn)
+//				{
+//			// Thực hiện hành động khi PA0 là 1 (nút nhấn)
+//			GPIOC->ODR ^= (1 << 13);  // Ví dụ: Toggle LED trên PC13
+//		}
+
+//		for (i = 0; i< 5;i++ )
+//		{
+//
+//		USART_SendString(&Usart1, a[i]);
+//		}
 
 	}
 }
 
-void StepMotor_Main_Init(void)
-{
-	Stepmotor1 = StepMotor_Init(&Timer2, &PA6, &PA7);
+void Usart_Init(void) {
+	Tx = GPIO_Init(GPIOA, GPIO_PIN_2, GPIO_MODE_OUTPUT_50MHz, GPIO_CNF_AF_PP);
+	AFIO_EN_CLOCK();
+
+	Usart1 = USART_Init(USART2, 9600, USART_WORDLENGTH_8B, USART_STOPBITS_1,
+			USART_PARITY_NONE, USART_MODE_TX, USART_HW_NONE);
+
 }
+void Encorder_Init(void) {
+	EnA = GPIO_Init(GPIOA, GPIO_PIN_0, GPIO_MODE_INPUT,
+			GPIO_CNF_INPUT_FLOATING);
+	EnB = GPIO_Init(GPIOA, GPIO_PIN_1, GPIO_MODE_INPUT,
+			GPIO_CNF_INPUT_FLOATING);
+	Timer2.Instance = TIMER2;
+	Timer2.Config.Feature = TIM_FEATURE_ENCODER_MODE;
+	Timer2.Config.Mode = TIM_MODE_UP;
+	Timer2.Config.SMode = TIM_ENCODER_MODE_1;
+	Timer2.Config.Prs = 7199;
+	Timer2.Config.Arr = 9;
+	Timer2.Config.Channel = TIM_CHANNEL_1;
+
+}
+void SysClock_Init(void) {
+	hRcc.Config.clk_src = RCC_CLK_PLL;       // Sử dụng PLL làm nguồn xung chính
+	hRcc.Config.pll_src = RCC_PLL_SRC_HSE; // Chọn HSE làm nguồn đầu vào cho PLL
+	hRcc.Config.pll_mul = RCC_PLL_MUL_9;            // Hệ số nhân PLL = 9
+	hRcc.Config.ahb_prescaler = RCC_AHB_DIV_1;      // AHB không chia
+	hRcc.Config.apb1_prescaler = RCC_APB_DIV_1;     // APB1 chia 2
+	hRcc.Config.apb2_prescaler = RCC_APB_DIV_1;     // APB2 không chia
+
+	// Gọi hàm cấu hình đồng hồ
+	RCC_ConfigClock(&hRcc);
+//	RCC->CFGR &= ~(0x7 << 24);
+//	RCC->CFGR |= (0x4 << 24);
+
+}
+//void ic_Init(void) {
+//	Sda = GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
+//	Scl = GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
+//	GPIO_WritePin(&Scl, GPIO_HIGH);
+//	GPIO_WritePin(&Sda, GPIO_HIGH);
+//	I2c1 = I2C_Init(I2C1, 100000, I2C_ADDRESSINGMODE_7BIT, 0x32, I2C_ACK_ENABLE,
+//			I2C_DUTYCYCLE_2);
+//
+//}
+//void lcd2002_Init(void) {
+//	lcd.Instance = &I2c1;
+//	lcd.Config.Address = 0x27;
+//	LCD_Init(&lcd);
+//
+//}
+//

@@ -76,11 +76,26 @@ GPIO_Handle_t GPIO_Init(GPIO_TypeDef *Instance, GPIO_Pin_t Pin,
 	// Trả về GPIO Handle
 	return hGPIO;
 }
-void GPIO_WritePin(GPIO_Handle_t *xGPIO, int flag) {
-	if (flag == 1)
+void GPIO_WritePin(GPIO_Handle_t *xGPIO, GPIO_State_t State) {
+	if (State == GPIO_LOW)
 		xGPIO->Instance->ODR &= ~(1 << xGPIO->GPIO_Config.Pin); // Enable pull-up
 	else
 		xGPIO->Instance->ODR |= (1 << xGPIO->GPIO_Config.Pin); // Enable pull-up
 
 }
+void GPIO_Toggle(GPIO_TypeDef *xGPIO, GPIO_Pin_t Pin)
+{
+    // Kiểm tra giá trị hiện tại của chân GPIO trong ODR
+    if (xGPIO->ODR == 0)
+    {
+        xGPIO->ODR |=(1<<Pin);   // Đặt bit của chân để set thành HIGH
 
+        // Nếu chân đang ở trạng thái HIGH, set thành LOW
+    }
+    else
+    {
+        // Nếu chân đang ở trạng thái LOW, set thành HIGH
+        xGPIO->ODR &= ~(1<<Pin);  // Xóa bit của chân để set thành LOW
+
+    }
+}

@@ -66,7 +66,6 @@ I2C_Handle_t I2C_Init(I2C_TypeDef_t *Instance, uint32_t ClockSpeed,
 	else
 		Instance->CR1 &= ~(1 << 10);
 
-	// Enable I2C peripheral
 
 	// Lưu lại config cho handle
 	hI2cx.Config.ClockSpeed = ClockSpeed;
@@ -77,7 +76,7 @@ I2C_Handle_t I2C_Init(I2C_TypeDef_t *Instance, uint32_t ClockSpeed,
 
 	return hI2cx;
 }
-void I2C_Write(I2C_Handle_t *hi2c, uint8_t Address, uint8_t *data, uint16_t size) {
+State_t I2C_Write(I2C_Handle_t *hi2c, uint8_t Address, uint8_t *data, uint16_t size) {
     // Bắt đầu giao tiếp I2C: Gửi tín hiệu START
     hi2c->Instance->CR1 |= (1 << 8);  // Set START bit (Bit 8 của CR1)
 
@@ -85,10 +84,14 @@ void I2C_Write(I2C_Handle_t *hi2c, uint8_t Address, uint8_t *data, uint16_t size
     while (!(hi2c->Instance->SR1 & (1 << 0)));  // Kiểm tra SB (Start Bit) trong SR1
 
     // Gửi địa chỉ I2C + bit 0 (Để chỉ ra là ghi dữ liệu)
-    hi2c->Instance->DR = (Address << 1) & 0xFE;  // Địa chỉ I2C (Shift left 1 và bỏ bit viết)
+    hi2c->Instance->DR = (Address << 1);  // Địa chỉ I2C (Shift left 1 và bỏ bit viết)
 
     // Đợi đến khi địa chỉ được gửi thành công (ADDR bit trong SR1)
-    while (!(hi2c->Instance->SR1 & (1 << 1)));  // Kiểm tra ADDR bit trong SR1
+
+//    while (!(hi2c->Instance->SR1 & (1 << 1)));  // Kiểm tra ADDR bit trong SR1
+
+//ACK disable
+	while (!(hi2c->Instance->SR1 & ((1 << 1) )));
 
     // Xóa cờ ADDR trong SR2
     volatile uint32_t temp = hi2c->Instance->SR2;
@@ -106,6 +109,9 @@ void I2C_Write(I2C_Handle_t *hi2c, uint8_t Address, uint8_t *data, uint16_t size
 
     // Đợi đến khi tín hiệu STOP được xác nhận
     while (hi2c->Instance->CR1 & (1 << 9));  // Kiểm tra Stop Bit trong CR1
+    for (volatile int i = 0; i < 1000; i++);
+
+    return STATE_OK;
 }
 
 void I2C_ScanDevices(I2C_Handle_t *hi2c, USART_Handle_t *hUsartx) {
@@ -114,16 +120,14 @@ void I2C_ScanDevices(I2C_Handle_t *hi2c, USART_Handle_t *hUsartx) {
 	for (uint8_t addr = 1; addr < 127; addr++) {
 		// 1. Gửi START
 		hi2c->Instance->CR1 |= (1 << 8); // START = Bit 8
-		while (!(hi2c->Instance->SR1 & (1 << 0)))
-			; // SB = Bit 0
+		while (!(hi2c->Instance->SR1 & (1 << 0))); // SB = Bit 0
 
 		// 2. Gửi địa chỉ (ghi mode)
 		hi2c->Instance->SR1; // Clear SB
 		hi2c->Instance->DR = addr << 1; // 7-bit address, write bit = 0
 
 		// 3. Đợi phản hồi: ADDR = bit 1, hoặc AF = bit 10
-		while (!(hi2c->Instance->SR1 & ((1 << 1) | (1 << 10))))
-			;
+		while (!(hi2c->Instance->SR1 & ((1 << 1) | (1 << 10))));
 
 		if (hi2c->Instance->SR1 & (1 << 1)) {
 			// Nếu nhận được phản hồi (ADDR)

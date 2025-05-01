@@ -13,10 +13,15 @@
 
 typedef enum {
 	GPIO_MODE_INPUT = 0x00,
-	GPIO_MODE_OUTPUT_10MHz = 0x01,
-	GPIO_MODE_OUTPUT_2MHz = 0x10,
-	GPIO_MODE_OUTPUT_50MHz = 0x11,
+	GPIO_MODE_OUTPUT_10MHz = 0x1,
+	GPIO_MODE_OUTPUT_2MHz = 0x2,
+	GPIO_MODE_OUTPUT_50MHz = 0x3,
 } GPIO_Mode_t;
+
+typedef enum {
+	GPIO_HIGH,
+	GPIO_LOW,
+} GPIO_State_t;
 
 
 
@@ -41,12 +46,12 @@ typedef enum {
 
 typedef enum {
 	GPIO_CNF_INPUT_ANALOG = 0x00,      // Analog input
-	GPIO_CNF_INPUT_FLOATING = 0x01,    // Floating input
-	GPIO_CNF_INPUT_PU_PD = 0x10,
+	GPIO_CNF_INPUT_FLOATING = 0x1,    // Floating input
+	GPIO_CNF_INPUT_PU_PD = 0x2,
 	GPIO_CNF_OUTPUT_PP = 0x00,         // Push-Pull output
-	GPIO_CNF_OUTPUT_OD = 0x01,         // Open-Drain output
-	GPIO_CNF_AF_PP = 0x10,             // Alternate function Push-Pull output
-	GPIO_CNF_AF_OD = 0x11
+	GPIO_CNF_OUTPUT_OD = 0x1,         // Open-Drain output
+	GPIO_CNF_AF_PP = 0x2,             // Alternate function Push-Pull output
+	GPIO_CNF_AF_OD = 0x3,
 } GPIO_CNF_t;
 
 typedef enum {
@@ -72,8 +77,9 @@ GPIO_Handle_t GPIO_Init(GPIO_TypeDef *Instance, GPIO_Pin_t Pin,
 
 
 
-void GPIO_WritePin(GPIO_Handle_t *xGPIO,int flag);
+void GPIO_WritePin(GPIO_Handle_t *xGPIO, GPIO_State_t State);
 
+void GPIO_Toggle(GPIO_TypeDef *xGPIO, GPIO_Pin_t Pin);
 
 
 
