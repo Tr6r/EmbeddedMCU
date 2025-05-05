@@ -10,7 +10,7 @@
 
 #include"stm32f103xx.h"
 #include"stdio.h"
-
+#include "exti_driver.h"
 typedef enum {
     TIM_FEATURE_NONE = 1,           // Không có tính năng đặc biệt
     TIM_FEATURE_ENCODER_MODE,   // Sử dụng chế độ Encoder
@@ -56,7 +56,7 @@ typedef struct
 	TIM_Mode_t Mode;
 	TIM_SlaveMode_t  SMode;
 	uint16_t Prs;
-	uint16_t Arr;
+	uint32_t Arr;
 	TIM_Channel_t Channel;
 	TIM_OCMode_t OCMode;
 	uint16_t  CompareValue;
@@ -71,8 +71,10 @@ typedef struct
 }TIMER2_5_Handle_t;
 
 
-TIMER2_5_Handle_t TIMER2_5_Init_Delay(TIMER2_5_TypeDef_t* Instance, uint16_t Prs);
-void TIM2_5_Delay(TIMER2_5_Handle_t* hTimerx, uint16_t Arr);
+TIMER2_5_Handle_t TIMER2_5_Init_Delay(TIMER2_5_TypeDef_t* Instance, uint32_t Prs);
+void TIM2_5_Delay(TIMER2_5_Handle_t* hTimerx, uint32_t Arr);
+void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx);
+uint32_t Read_Encoder(TIMER2_5_TypeDef_t* Timerx, TIM_Channel_t channel);
 //TIMER2_5_Handle_t Init_StepMotor_Base(TIMER2_5_TypeDef_t* Instance, uint16_t Prs, uint16_t Arr);
 //void Init_StepMotorChannel(TIMER2_5_TypeDef_t* Instance, TIM_Channel_t Channel,TIM_OCMode_t OCMode, uint16_t CompareValue);
 //

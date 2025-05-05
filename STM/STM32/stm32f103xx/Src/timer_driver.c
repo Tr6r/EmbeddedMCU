@@ -7,7 +7,7 @@
 #include "timerx_driver.h"
 
 TIMER2_5_Handle_t TIMER2_5_Init_Delay(TIMER2_5_TypeDef_t *Instance,
-		uint16_t Prs) {
+		uint32_t Prs) {
 	TIMER2_5_Handle_t hTIM2_5;
 
 	hTIM2_5.Instance = Instance;
@@ -58,28 +58,40 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 		hTimerx->Instance->SMCR |= hTimerx->Config.SMode; // Gán mode encoder
 
 		// 3. Đặt CC1S = 01 và CC2S = 01 để nhận tín hiệu input (IC1, IC2)
-		if (hTimerx->Config.Channel == TIM_CHANNEL_1 || hTimerx->Config.Channel == TIM_CHANNEL_2) {
-		    // Xử lý encoder trên CC1 + CC2
-		    hTimerx->Instance->CCMR1 &= ~((3 << 0) | (3 << 8)); // Clear CC1S + CC2S
-		    hTimerx->Instance->CCMR1 |=  (1 << 0) | (1 << 8);   // CC1S = 01, CC2S = 01 (input)
-		} else if (hTimerx->Config.Channel == TIM_CHANNEL_3 || hTimerx->Config.Channel == TIM_CHANNEL_4) {
-		    // Xử lý encoder trên CC3 + CC4
-		    hTimerx->Instance->CCMR2 &= ~((3 << 0) | (3 << 8)); // Clear CC3S + CC4S
-		    hTimerx->Instance->CCMR2 |=  (1 << 0) | (1 << 8);   // CC3S = 01, CC4S = 01 (input)
+		if (hTimerx->Config.Channel == TIM_CHANNEL_1
+				|| hTimerx->Config.Channel == TIM_CHANNEL_2) {
+			// Xử lý encoder trên CC1 + CC2
+			hTimerx->Instance->CCMR1 &= ~((3 << 0) | (3 << 8)); // Clear CC1S + CC2S
+			hTimerx->Instance->CCMR1 |= (1 << 0) | (1 << 8); // CC1S = 01, CC2S = 01 (input)
+			hTimerx->Instance->CCMR1 |= (0b0011 << 4); // IC1F = fSAMPLING=fdts/2, N=8
+			hTimerx->Instance->CCMR1 |= (0b0011 << 12); // IC2F = fSAMPLING=fdts/2, N=8
+			hTimerx->Instance->CCER |= (1 << 0) | (1 << 1) | (1 << 4) | (1 << 5)  ;    // CC1E = 1, CC2E = 1
+
+		} else if (hTimerx->Config.Channel == TIM_CHANNEL_3
+				|| hTimerx->Config.Channel == TIM_CHANNEL_4) {
+			// Xử lý encoder trên CC3 + CC4
+			hTimerx->Instance->CCMR2 &= ~((3 << 0) | (3 << 8)); // Clear CC3S + CC4S
+			hTimerx->Instance->CCMR2 |= (1 << 0) | (1 << 8); // CC3S = 01, CC4S = 01 (input)
+			hTimerx->Instance->CCMR2 |= (0b0011 << 4); // IC1F = fSAMPLING=fdts/2, N=8
+			hTimerx->Instance->CCMR2 |= (0b0011 << 12); // IC2F = fSAMPLING=fdts/2, N=8
+			hTimerx->Instance->CCER |= (1 << 8) | (1 << 9) | (1 << 12) | (1 << 13)  ;    // CC1E = 1, CC2E = 1
+
 		}
 
 		// 4. Không đảo pha - nếu cần đảo thì set bit CC1P / CC2P
-		hTimerx->Instance->CCER &= ~((1 << 1) | (1 << 5)); // CC1P = 0, CC2P = 0
+//		hTimerx->Instance->CCER &= ~((1 << 1) | (1 << 5)); // CC1P = 0, CC2P = 0
 
 		// 5. Bật capture cho CC1 và CC2
-		hTimerx->Instance->CCER |= (1 << 0) | (1 << 4);    // CC1E = 1, CC2E = 1
 
 		// 6. Đặt ARR và PSC
 		hTimerx->Instance->ARR = hTimerx->Config.Arr;
 		hTimerx->Instance->PSC = hTimerx->Config.Prs;
+		hTimerx->Instance->DIER |= (1<<0);
 
 		// 7. Reset counter
 		hTimerx->Instance->CNT = 0;
+		hTimerx->Instance->CR1 |= (1 << 0);
+		NVIC_EnableIRQ(TIM2_IRQn);
 
 		break;
 		// Có thể thêm các case khác nếu cần
@@ -89,7 +101,9 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 	}
 
 }
-void TIMER2_5_Delay(TIMER2_5_Handle_t *hTimerx, uint16_t Arr) {
+
+
+void TIMER2_5_Delay(TIMER2_5_Handle_t *hTimerx, uint32_t Arr) {
 	// Cấu hình giá trị ARR (Auto-reload register) cho thời gian delay
 	hTimerx->Instance->ARR = Arr;
 	hTimerx->Instance->SR &= ~(1 << 0);  // Clear the UIF flag
@@ -98,48 +112,45 @@ void TIMER2_5_Delay(TIMER2_5_Handle_t *hTimerx, uint16_t Arr) {
 	hTimerx->Instance->CNT = 0;
 	hTimerx->Instance->CR1 |= (1 << 0); // CEN = 1
 
-
-	uint32_t timer2_cnt = *(volatile uint32_t*)0x40000024;
-
 	// Đợi cho đến khi CNT đạt ARR (timer tràn)
 	while (!(hTimerx->Instance->SR & (1 << 0))) {
 	}
 
 }
 
-int32_t Read_Encoder(TIMER2_5_TypeDef_t* Timerx, TIM_Channel_t channel) {
-    int32_t encoder_value = 0;
+uint32_t Read_Encoder(TIMER2_5_TypeDef_t *Timerx, TIM_Channel_t channel) {
+	uint32_t encoder_value = 0;
 
-    // Kiểm tra kênh nào đang được chọn và lấy giá trị tương ứng từ CNT
-    switch (channel) {
-        case TIM_CHANNEL_1:
-            // Đọc giá trị từ CC1
-            encoder_value = (int32_t)(Timerx->CCR1);
-            break;
+	// Kiểm tra kênh nào đang được chọn và lấy giá trị tương ứng từ CNT
+	switch (channel) {
+	case TIM_CHANNEL_1:
+		// Đọc giá trị từ CC1
+		encoder_value = (int32_t) (Timerx->CCR1);
+		break;
 
-        case TIM_CHANNEL_2:
-            // Đọc giá trị từ CC2
-            encoder_value = (int32_t)(Timerx->CCR2);
-            break;
+	case TIM_CHANNEL_2:
+		// Đọc giá trị từ CC2
+		encoder_value = (int32_t) (Timerx->CCR2);
+		break;
 
-        case TIM_CHANNEL_3:
-            // Đọc giá trị từ CC3
-            encoder_value = (int32_t)(Timerx->CCR3);
-            break;
+	case TIM_CHANNEL_3:
+		// Đọc giá trị từ CC3
+		encoder_value = (int32_t) (Timerx->CCR3);
+		break;
 
-        case TIM_CHANNEL_4:
-            // Đọc giá trị từ CC4
-            encoder_value = (int32_t)(Timerx->CCR4);
-            break;
+	case TIM_CHANNEL_4:
+		// Đọc giá trị từ CC4
+		encoder_value = (int32_t) (Timerx->CCR4);
+		break;
 
-        default:
-            // Nếu không phải kênh hợp lệ, trả về 0
-            encoder_value = 0;
-            break;
-    }
+	default:
+		// Nếu không phải kênh hợp lệ, trả về 0
+		encoder_value = 0;
+		break;
+	}
 
-    // Trả về giá trị encoder
-    return encoder_value;
+	// Trả về giá trị encoder
+	return encoder_value;
 }
 //
 //TIMER2_5_Handle_t Init_StepMotor_Base(TIMER2_5_TypeDef_t* Instance, uint16_t Prs, uint16_t Arr)

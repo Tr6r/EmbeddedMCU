@@ -32,14 +32,29 @@ GPIO_Handle_t EnA, EnB;
 RCC_Handle_t hRcc;
 
 //I2C_Handle_t I2c1;
-TIMER2_5_Handle_t Timer2;
+TIMER2_5_Handle_t Timer3,Timer2;
+volatile int32_t encoder_total = 0;
+
+void TIM2_IRQHandler(void) {
+	if (TIMER2->SR & (1 << 0)) {
+		TIMER2->SR &= ~(1 << 0);  // Xóa cờ update interrupt (UIF)
+
+	    if (TIMER2->CNT < 0x7FFF) {
+	        encoder_total += 0x10000; // Đếm xuôi
+	    } else {
+	        encoder_total -= 0x10000; // Đếm ngược
+	    }
+	}
+}
+
 //LCD_Handle_t lcd;
 int main(void) {
 	GPIO_Handle_t PC13 = GPIO_Init(GPIOC, GPIO_PIN_13, GPIO_MODE_OUTPUT_10MHz,
 			GPIO_CNF_OUTPUT_PP);
 	SysClock_Init();
-	Timer2 = TIMER2_5_Init_Delay(TIMER2, 719999);
+	Timer3 = TIMER2_5_Init_Delay(TIMER3, 35999);
 	Usart_Init();
+	Encorder_Init();
 //	ic_Init();
 //	char message[] = "hello";
 
@@ -62,45 +77,26 @@ int main(void) {
 //	USART_SendString(&Usart1, "hehe\n");
 
 	for (;;) {
-//		LCD_SendData(&lcd, 'H');
-//		State_t ret = I2C_Write(&I2c1, 0x27, (uint8_t *)message,  strlen(message));  // Gửi dữ liệu đến Arduino
-//		if (ret == STATE_OK)
-//		{
-//			GPIO_Toggle(GPIOB, GPIO_PIN_7);
-//		}
-//		else GPIO_WritePin(&Sda, GPIO_HIGH);
-//
-		GPIO_Toggle(GPIOC, GPIO_PIN_13);
-		USART_SendString(&Usart1, "hehe\n");
 
-		TIMER2_5_Delay(&Timer2, 1000);
-//
-//		TIMER2_5_Delay(&Timer2, 999);
 
-//		if (GPIOA->IDR & (1 << 0))  // Nếu PA0 có giá trị 1 (nút bấm được nhấn)
-//				{
-//			// Thực hiện hành động khi PA0 là 1 (nút nhấn)
-//			GPIOC->ODR ^= (1 << 13);  // Ví dụ: Toggle LED trên PC13
-//		}
 
-//		for (i = 0; i< 5;i++ )
-//		{
-//
-//		USART_SendString(&Usart1, a[i]);
-//		}
+
 
 	}
 }
 
 void Usart_Init(void) {
+
 	Tx = GPIO_Init(GPIOA, GPIO_PIN_2, GPIO_MODE_OUTPUT_50MHz, GPIO_CNF_AF_PP);
 	AFIO_EN_CLOCK();
 
 	Usart1 = USART_Init(USART2, 9600, USART_WORDLENGTH_8B, USART_STOPBITS_1,
 			USART_PARITY_NONE, USART_MODE_TX, USART_HW_NONE);
 
+
 }
 void Encorder_Init(void) {
+
 	EnA = GPIO_Init(GPIOA, GPIO_PIN_0, GPIO_MODE_INPUT,
 			GPIO_CNF_INPUT_FLOATING);
 	EnB = GPIO_Init(GPIOA, GPIO_PIN_1, GPIO_MODE_INPUT,
@@ -108,18 +104,20 @@ void Encorder_Init(void) {
 	Timer2.Instance = TIMER2;
 	Timer2.Config.Feature = TIM_FEATURE_ENCODER_MODE;
 	Timer2.Config.Mode = TIM_MODE_UP;
-	Timer2.Config.SMode = TIM_ENCODER_MODE_1;
-	Timer2.Config.Prs = 7199;
-	Timer2.Config.Arr = 9;
+	Timer2.Config.SMode = TIM_ENCODER_MODE_3;
+	Timer2.Config.Prs = 0;
+	Timer2.Config.Arr = 65535;
 	Timer2.Config.Channel = TIM_CHANNEL_1;
+	TIM2_5_Init(&Timer2);
 
 }
 void SysClock_Init(void) {
+
 	hRcc.Config.clk_src = RCC_CLK_PLL;       // Sử dụng PLL làm nguồn xung chính
 	hRcc.Config.pll_src = RCC_PLL_SRC_HSE; // Chọn HSE làm nguồn đầu vào cho PLL
 	hRcc.Config.pll_mul = RCC_PLL_MUL_9;            // Hệ số nhân PLL = 9
 	hRcc.Config.ahb_prescaler = RCC_AHB_DIV_1;      // AHB không chia
-	hRcc.Config.apb1_prescaler = RCC_APB_DIV_1;     // APB1 chia 2
+	hRcc.Config.apb1_prescaler = RCC_APB_DIV_2;     // APB1 chia 2
 	hRcc.Config.apb2_prescaler = RCC_APB_DIV_1;     // APB2 không chia
 
 	// Gọi hàm cấu hình đồng hồ
