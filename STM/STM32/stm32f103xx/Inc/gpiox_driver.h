@@ -46,10 +46,10 @@ typedef enum {
 
 typedef enum {
 	GPIO_CNF_INPUT_ANALOG = 0x00,      // Analog input
-	GPIO_CNF_INPUT_FLOATING = 0x1,    // Floating input
+	GPIO_CNF_INPUT_FLOATING = 0x01,    // Floating input
 	GPIO_CNF_INPUT_PU_PD = 0x2,
 	GPIO_CNF_OUTPUT_PP = 0x00,         // Push-Pull output
-	GPIO_CNF_OUTPUT_OD = 0x1,         // Open-Drain output
+	GPIO_CNF_OUTPUT_OD = 0x01,         // Open-Drain output
 	GPIO_CNF_AF_PP = 0x2,             // Alternate function Push-Pull output
 	GPIO_CNF_AF_OD = 0x3,
 } GPIO_CNF_t;
