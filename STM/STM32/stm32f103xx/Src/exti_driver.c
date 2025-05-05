@@ -37,5 +37,10 @@ void EXTI_Init(EXTI_Handle_t* hEXTI)
     }
 }
 void NVIC_EnableIRQ(uint32_t IRQn) {
-    NVIC_ISER0 |= (1 << IRQn);  // Set bit IRQn trong NVIC_ISER0 để kích hoạt ngắt
+    if (IRQn < 32) {
+        NVIC_ISER0 |= (1 << IRQn);
+    } else if (IRQn < 64) {
+        NVIC_ISER1 |= (1 << (IRQn - 32));
+    }
+    // Thêm ISER2 nếu cần
 }
