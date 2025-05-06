@@ -54,6 +54,10 @@ GPIO_Handle_t GPIO_Init(GPIO_TypeDef *Instance, GPIO_Pin_t Pin,
 
 		}
 	} else {
+		if (CNF > 0x01)
+		{
+			AFIO_EN_CLOCK();
+		}
 		if (Pin < 8) {
 			// Cấu hình CRL cho Pin 0-7
 			Instance->CRL &= ~(0xF << (Pin * 4));  // Clear previous settings
@@ -67,6 +71,7 @@ GPIO_Handle_t GPIO_Init(GPIO_TypeDef *Instance, GPIO_Pin_t Pin,
 			Instance->CRH |= (Mode << ((Pin - 8) * 4)); // Set mode (2 bit)
 			Instance->CRH |= (CNF << ((Pin - 8) * 4 + 2)); // Set CNF (2 bit)
 		}
+
 
 	}
 	// Xác định chế độ (Mode) cho pin

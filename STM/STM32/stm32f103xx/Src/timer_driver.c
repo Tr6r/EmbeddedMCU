@@ -65,7 +65,8 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 			hTimerx->Instance->CCMR1 |= (1 << 0) | (1 << 8); // CC1S = 01, CC2S = 01 (input)
 			hTimerx->Instance->CCMR1 |= (0b0011 << 4); // IC1F = fSAMPLING=fdts/2, N=8
 			hTimerx->Instance->CCMR1 |= (0b0011 << 12); // IC2F = fSAMPLING=fdts/2, N=8
-			hTimerx->Instance->CCER |= (1 << 0) | (1 << 1) | (1 << 4) | (1 << 5)  ;    // CC1E = 1, CC2E = 1
+			hTimerx->Instance->CCER |= (1 << 0) | (1 << 1) | (1 << 4)
+					| (1 << 5);    // CC1E = 1, CC2E = 1
 
 		} else if (hTimerx->Config.Channel == TIM_CHANNEL_3
 				|| hTimerx->Config.Channel == TIM_CHANNEL_4) {
@@ -74,25 +75,62 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 			hTimerx->Instance->CCMR2 |= (1 << 0) | (1 << 8); // CC3S = 01, CC4S = 01 (input)
 			hTimerx->Instance->CCMR2 |= (0b0011 << 4); // IC1F = fSAMPLING=fdts/2, N=8
 			hTimerx->Instance->CCMR2 |= (0b0011 << 12); // IC2F = fSAMPLING=fdts/2, N=8
-			hTimerx->Instance->CCER |= (1 << 8) | (1 << 9) | (1 << 12) | (1 << 13)  ;    // CC1E = 1, CC2E = 1
+			hTimerx->Instance->CCER |= (1 << 8) | (1 << 9) | (1 << 12)
+					| (1 << 13);    // CC1E = 1, CC2E = 1
 
 		}
 
 		// 4. Không đảo pha - nếu cần đảo thì set bit CC1P / CC2P
 //		hTimerx->Instance->CCER &= ~((1 << 1) | (1 << 5)); // CC1P = 0, CC2P = 0
 
-		// 5. Bật capture cho CC1 và CC2
-
 		// 6. Đặt ARR và PSC
 		hTimerx->Instance->ARR = hTimerx->Config.Arr;
 		hTimerx->Instance->PSC = hTimerx->Config.Prs;
-		hTimerx->Instance->DIER |= (1<<0);
+//		hTimerx->Instance->DIER |= (1<<0);
 
 		// 7. Reset counter
 		hTimerx->Instance->CNT = 0;
 		hTimerx->Instance->CR1 |= (1 << 0);
-		NVIC_EnableIRQ(TIM2_IRQn);
+//		NVIC_EnableIRQ(TIM2_IRQn);
 
+		break;
+	case TIM_FEATURE_PWM:
+		hTimerx->Instance->PSC = hTimerx->Config.Prs; // (72 MHz / (71 + 1)) = 1 MHz (Timer frequency)
+		hTimerx->Instance->ARR = hTimerx->Config.Arr; // (1 MHz / 50) = 20kHz (PWM frequency)
+
+		// Cấu hình PWM Mode 1 cho TIM2 CH1
+		hTimerx->Instance->CCMR1 &= ~0xFF;
+
+		if (hTimerx->Config.Channel == TIM_CHANNEL_1) {
+			// Channel 1 (CCMR1)
+			hTimerx->Instance->CCMR1 |= (hTimerx->Config.OCMode << 4); // OC1M = 110 (PWM Mode 1) cho Channel 1
+			hTimerx->Instance->CCMR1 |= (1 << 3); // OC1PE = 1 (PWM with preload) cho Channel 1
+			hTimerx->Instance->CCER |= (1 << 0); // CC1E = 1 (Enable output) cho Channel 1
+		} else if (hTimerx->Config.Channel == TIM_CHANNEL_2) {
+			// Channel 2 (CCMR1)
+			hTimerx->Instance->CCMR1 |= (hTimerx->Config.OCMode << 12); // OC2M = 110 (PWM Mode 1) cho Channel 2
+			hTimerx->Instance->CCMR1 |= (1 << 11); // OC2PE = 1 (PWM with preload) cho Channel 2
+			hTimerx->Instance->CCER |= (1 << 4); // CC2E = 1 (Enable output) cho Channel 2
+		} else if (hTimerx->Config.Channel == TIM_CHANNEL_3) {
+			// Channel 3 (CCMR2)
+			hTimerx->Instance->CCMR2 |= (hTimerx->Config.OCMode << 4); // OC3M = 110 (PWM Mode 1) cho Channel 3
+			hTimerx->Instance->CCMR2 |= (1 << 3); // OC3PE = 1 (PWM with preload) cho Channel 3
+			hTimerx->Instance->CCER |= (1 << 8); // CC3E = 1 (Enable output) cho Channel 3
+		} else if (hTimerx->Config.Channel == TIM_CHANNEL_4) {
+			// Channel 4 (CCMR2)
+			hTimerx->Instance->CCMR2 |= (hTimerx->Config.OCMode << 12); // OC4M = 110 (PWM Mode 1) cho Channel 4
+			hTimerx->Instance->CCMR2 |= (1 << 11); // OC4PE = 1 (PWM with preload) cho Channel 4
+			hTimerx->Instance->CCER |= (1 << 12); // CC4E = 1 (Enable output) cho Channel 4
+		}
+
+		// Enable Auto-reload Preload (ARPE)
+		hTimerx->Instance->CR1 |= (1 << 7);     // ARPE = 1
+
+		// Start Timer (Enable counter)
+		hTimerx->Instance->CR1 |= (1 << 0);     // CEN = 1 (Enable counter)
+
+		// Force update to load all registers (required after changes to ARR or PSC)
+		hTimerx->Instance->EGR |= 1;           // UG = 1 (Generate update event)
 		break;
 		// Có thể thêm các case khác nếu cần
 	default:
@@ -101,7 +139,6 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 	}
 
 }
-
 
 void TIMER2_5_Delay(TIMER2_5_Handle_t *hTimerx, uint32_t Arr) {
 	// Cấu hình giá trị ARR (Auto-reload register) cho thời gian delay
