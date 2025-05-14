@@ -55,31 +55,8 @@ int main(void) {
 	Timer3 = TIMER2_5_Init_Delay(TIMER3, 35999);
 	Usart_Init();
 	Encorder_Init();
-//	ic_Init();
-//	char message[] = "hello";
-
-//	I2C_ScanDevices(&I2c1, &Usart1);
-
-//	lcd2002_Init();
-//	AFIO_Handle_t AFA0;
-//	AFA0.Constance = AFIO;
-//	AFA0.Config.EXTI_Line= EXTI_LINE_0;
-//	AFA0.Config.Function = AFIO_FUNC_EXTI;
-//	AFA0.Config.GPIO_PortSrc = GPIO_PORTSRC_A;
-//	AFIO_Init(&AFA0);
-//	EXTI_Handle_t EXTI0;
-//	EXTI0.Constance = EXTI;
-//	EXTI0.Config.EXTI_Line = EXTI_LINE_0;
-//	EXTI0.Config.PortSrc = GPIO_PORTSRC_A;
-//	EXTI0.Config.Trigger = EXTI_TRIGGER_BOTH;
-//	EXTI_Init(&EXTI0);
-
-//	USART_SendString(&Usart1, "hehe\n");
 
 	for (;;) {
-
-
-
 
 
 	}
@@ -126,19 +103,3 @@ void SysClock_Init(void) {
 //	RCC->CFGR |= (0x4 << 24);
 
 }
-//void ic_Init(void) {
-//	Sda = GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
-//	Scl = GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
-//	GPIO_WritePin(&Scl, GPIO_HIGH);
-//	GPIO_WritePin(&Sda, GPIO_HIGH);
-//	I2c1 = I2C_Init(I2C1, 100000, I2C_ADDRESSINGMODE_7BIT, 0x32, I2C_ACK_ENABLE,
-//			I2C_DUTYCYCLE_2);
-//
-//}
-//void lcd2002_Init(void) {
-//	lcd.Instance = &I2c1;
-//	lcd.Config.Address = 0x27;
-//	LCD_Init(&lcd);
-//
-//}
-//
