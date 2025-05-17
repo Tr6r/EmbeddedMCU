@@ -18,8 +18,8 @@ typedef enum {
 
 typedef struct
 {
-    GPIO_Handle_t *Dir_Pin;
-    GPIO_Handle_t *PWM_Pin;
+    GPIO_Handle_t *PWMA_Pin;
+    GPIO_Handle_t *PWMB_Pin;
     TIMER2_5_Handle_t *hTIM;
 } L9110_Handle_t;
 
