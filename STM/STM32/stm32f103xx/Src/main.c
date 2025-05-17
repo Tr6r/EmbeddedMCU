@@ -16,76 +16,56 @@
  ******************************************************************************
  */
 #include <stm32f103xx.h>
-#include <timerx_driver.h>
 #include <gpiox_driver.h>
-#include <usart_driver.h>
+#include <L9110_driver.h>
 #include <rcc_driver.h>
 
-void Usart_Init(void);
-//void ic_Init(void);
-void lcd2002_Init(void);
-void Encorder_Init(void);
 void SysClock_Init(void);
-USART_Handle_t Usart1;
-GPIO_Handle_t Tx, Sda, Scl;
-GPIO_Handle_t EnA, EnB;
+void l9110_Init(void);
+
+GPIO_Handle_t PwmB, PwmA, LedC;
 RCC_Handle_t hRcc;
+L9110_Handle_t l9110;
 
 //I2C_Handle_t I2c1;
-TIMER2_5_Handle_t Timer3,Timer2;
-volatile int32_t encoder_total = 0;
+TIMER2_5_Handle_t Timer2, Timer3;
 
-void TIM2_IRQHandler(void) {
-	if (TIMER2->SR & (1 << 0)) {
-		TIMER2->SR &= ~(1 << 0);  // Xóa cờ update interrupt (UIF)
-
-	    if (TIMER2->CNT < 0x7FFF) {
-	        encoder_total += 0x10000; // Đếm xuôi
-	    } else {
-	        encoder_total -= 0x10000; // Đếm ngược
-	    }
-	}
-}
-
-//LCD_Handle_t lcd;
 int main(void) {
-	GPIO_Handle_t PC13 = GPIO_Init(GPIOC, GPIO_PIN_13, GPIO_MODE_OUTPUT_10MHz,
-			GPIO_CNF_OUTPUT_PP);
 	SysClock_Init();
-	Timer3 = TIMER2_5_Init_Delay(TIMER3, 35999);
-	Usart_Init();
-	Encorder_Init();
-
+	LedC = GPIO_Init(GPIOC, GPIO_PIN_13, GPIO_MODE_OUTPUT_2MHz,
+			GPIO_CNF_OUTPUT_PP);
+	Timer3 = TIMER2_5_Init_Delay(TIMER3, 719999);
+	l9110_Init();
 	for (;;) {
+		L9110_Straight(&l9110, L9110_DIRECTION_FORWARD, 90);  // PWM 80%
 
+		TIMER2_5_Delay(&Timer3, 1999);
+
+		L9110_Stop(&l9110);
+		TIMER2_5_Delay(&Timer3, 999);
+
+		L9110_Straight(&l9110, L9110_DIRECTION_REVERSE, 90);  // PWM 80%
+
+		TIMER2_5_Delay(&Timer3, 1999);
+
+		L9110_Stop(&l9110);
+		TIMER2_5_Delay(&Timer3, 999);
 
 	}
 }
-
-void Usart_Init(void) {
-
-	Tx = GPIO_Init(GPIOA, GPIO_PIN_2, GPIO_MODE_OUTPUT_50MHz, GPIO_CNF_AF_PP);
-	AFIO_EN_CLOCK();
-
-	Usart1 = USART_Init(USART2, 9600, USART_WORDLENGTH_8B, USART_STOPBITS_1,
-			USART_PARITY_NONE, USART_MODE_TX, USART_HW_NONE);
-
-
-}
-void Encorder_Init(void) {
-
-	EnA = GPIO_Init(GPIOA, GPIO_PIN_0, GPIO_MODE_INPUT,
-			GPIO_CNF_INPUT_FLOATING);
-	EnB = GPIO_Init(GPIOA, GPIO_PIN_1, GPIO_MODE_INPUT,
-			GPIO_CNF_INPUT_FLOATING);
+void l9110_Init() {
+	PwmB = GPIO_Init(GPIOA, GPIO_PIN_1, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_PP);
+	PwmA = GPIO_Init(GPIOA, GPIO_PIN_0, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_PP);
 	Timer2.Instance = TIMER2;
-	Timer2.Config.Feature = TIM_FEATURE_ENCODER_MODE;
-	Timer2.Config.Mode = TIM_MODE_UP;
-	Timer2.Config.SMode = TIM_ENCODER_MODE_3;
-	Timer2.Config.Prs = 0;
-	Timer2.Config.Arr = 65535;
+	Timer2.Config.Feature = TIM_FEATURE_PWM;
+	Timer2.Config.Prs = 71;
+	Timer2.Config.Arr = 100;
 	Timer2.Config.Channel = TIM_CHANNEL_1;
+	Timer2.Config.OCMode = TIM_OCMODE_PWM1;
 	TIM2_5_Init(&Timer2);
+	l9110.PWMB_Pin = &PwmB;
+	l9110.PWMA_Pin = &PwmA;
+	l9110.hTIM = &Timer2;
 
 }
 void SysClock_Init(void) {
