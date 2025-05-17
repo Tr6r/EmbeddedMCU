@@ -100,28 +100,23 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 
 		// Cấu hình PWM Mode 1 cho TIM2 CH1
 		hTimerx->Instance->CCMR1 &= ~0xFF;
+		hTimerx->Instance->CCMR2 &= ~0xFF;
 
 		if (hTimerx->Config.Channel == TIM_CHANNEL_1) {
 			// Channel 1 (CCMR1)
-			hTimerx->Instance->CCMR1 |= (hTimerx->Config.OCMode << 4); // OC1M = 110 (PWM Mode 1) cho Channel 1
-			hTimerx->Instance->CCMR1 |= (1 << 3); // OC1PE = 1 (PWM with preload) cho Channel 1
-			hTimerx->Instance->CCER |= (1 << 0); // CC1E = 1 (Enable output) cho Channel 1
-		} else if (hTimerx->Config.Channel == TIM_CHANNEL_2) {
-			// Channel 2 (CCMR1)
-			hTimerx->Instance->CCMR1 |= (hTimerx->Config.OCMode << 12); // OC2M = 110 (PWM Mode 1) cho Channel 2
-			hTimerx->Instance->CCMR1 |= (1 << 11); // OC2PE = 1 (PWM with preload) cho Channel 2
-			hTimerx->Instance->CCER |= (1 << 4); // CC2E = 1 (Enable output) cho Channel 2
-		} else if (hTimerx->Config.Channel == TIM_CHANNEL_3) {
-			// Channel 3 (CCMR2)
-			hTimerx->Instance->CCMR2 |= (hTimerx->Config.OCMode << 4); // OC3M = 110 (PWM Mode 1) cho Channel 3
-			hTimerx->Instance->CCMR2 |= (1 << 3); // OC3PE = 1 (PWM with preload) cho Channel 3
-			hTimerx->Instance->CCER |= (1 << 8); // CC3E = 1 (Enable output) cho Channel 3
-		} else if (hTimerx->Config.Channel == TIM_CHANNEL_4) {
-			// Channel 4 (CCMR2)
-			hTimerx->Instance->CCMR2 |= (hTimerx->Config.OCMode << 12); // OC4M = 110 (PWM Mode 1) cho Channel 4
-			hTimerx->Instance->CCMR2 |= (1 << 11); // OC4PE = 1 (PWM with preload) cho Channel 4
-			hTimerx->Instance->CCER |= (1 << 12); // CC4E = 1 (Enable output) cho Channel 4
+			hTimerx->Instance->CCMR1 |= (hTimerx->Config.OCMode << 4) | (hTimerx->Config.OCMode << 12); // OC1M = 110 (PWM Mode 1) cho Channel 1
+			hTimerx->Instance->CCMR1 |= (1 << 3) | (1 << 11); // OC1PE = 1 (PWM with preload) cho Channel 1
+			hTimerx->Instance->CCER |= (1 << 0) | (1 << 4); // CC1E = 1 (Enable output) cho Channel 1
 		}
+
+		else if (hTimerx->Config.Channel == TIM_CHANNEL_3) {
+			// Channel 3 (CCMR2)
+			hTimerx->Instance->CCMR2 |= (hTimerx->Config.OCMode << 4) | (hTimerx->Config.OCMode << 12); // OC3M = 110 (PWM Mode 1) cho Channel 3
+			hTimerx->Instance->CCMR2 |= (1 << 3)| (1 << 11); // OC3PE = 1 (PWM with preload) cho Channel 3
+			hTimerx->Instance->CCER |= (1 << 8)| (1 << 4); // CC3E = 1 (Enable output) cho Channel 3
+
+		}
+
 
 		// Enable Auto-reload Preload (ARPE)
 		hTimerx->Instance->CR1 |= (1 << 7);     // ARPE = 1
