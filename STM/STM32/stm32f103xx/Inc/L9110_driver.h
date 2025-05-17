@@ -11,6 +11,7 @@
 #include <stm32f103xx.h>
 #include <timerx_driver.h>
 #include <gpiox_driver.h>
+#include <encoder_driver.h>
 typedef enum {
     L9110_DIRECTION_FORWARD = 0,  // Cùng chiều
     L9110_DIRECTION_REVERSE = 1   // Ngược chiều
@@ -25,7 +26,8 @@ typedef struct
 
 void L9110_Straight(L9110_Handle_t *Instance,L9110_Direction_t Dir, uint16_t pwm);
 void L9110_Stop(L9110_Handle_t *Instance);
-void L9110_Straight_Dis(L9110_Handle_t *Instance, L9110_Direction_t Dir, uint16_t pwm, volatile int32_t *encoder_total);
+void L9110_Straight_Dis(L9110_Handle_t *Instance, L9110_Direction_t Dir,
+		uint16_t pwm, TIMER2_5_TypeDef_t *EncInstance,uint16_t Enc);
 
 
 #endif /* L9110_DRIVER_H_ */
