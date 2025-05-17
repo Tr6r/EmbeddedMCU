@@ -63,8 +63,10 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 			// Xử lý encoder trên CC1 + CC2
 			hTimerx->Instance->CCMR1 &= ~((3 << 0) | (3 << 8)); // Clear CC1S + CC2S
 			hTimerx->Instance->CCMR1 |= (1 << 0) | (1 << 8); // CC1S = 01, CC2S = 01 (input)
+
 			hTimerx->Instance->CCMR1 |= (0b0011 << 4); // IC1F = fSAMPLING=fdts/2, N=8
 			hTimerx->Instance->CCMR1 |= (0b0011 << 12); // IC2F = fSAMPLING=fdts/2, N=8
+
 			hTimerx->Instance->CCER |= (1 << 0) | (1 << 1) | (1 << 4)
 					| (1 << 5);    // CC1E = 1, CC2E = 1
 
@@ -89,8 +91,8 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 //		hTimerx->Instance->DIER |= (1<<0);
 
 		// 7. Reset counter
-		hTimerx->Instance->CNT = 0;
 		hTimerx->Instance->CR1 |= (1 << 0);
+		hTimerx->Instance->CNT = 0;
 //		NVIC_EnableIRQ(TIM2_IRQn);
 
 		break;

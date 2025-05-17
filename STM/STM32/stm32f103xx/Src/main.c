@@ -18,38 +18,43 @@
 #include <stm32f103xx.h>
 #include <gpiox_driver.h>
 #include <L9110_driver.h>
+#include <encoder_driver.h>
 #include <rcc_driver.h>
 
 void SysClock_Init(void);
 void l9110_Init(void);
-
-GPIO_Handle_t PwmB, PwmA, LedC;
+void Encoder_Init(void);
+GPIO_Handle_t PwmB, PwmA, EnA, EnB;
 RCC_Handle_t hRcc;
 L9110_Handle_t l9110;
+ENC_Handle_t hEnc;
 
 //I2C_Handle_t I2c1;
-TIMER2_5_Handle_t Timer2, Timer3;
-
+TIMER2_5_Handle_t Timer2, Timer3, TimEnc;
+int16_t count_Enc =0;
 int main(void) {
 	SysClock_Init();
-	LedC = GPIO_Init(GPIOC, GPIO_PIN_13, GPIO_MODE_OUTPUT_2MHz,
-			GPIO_CNF_OUTPUT_PP);
+
 	Timer3 = TIMER2_5_Init_Delay(TIMER3, 719999);
+	Encoder_Init();
 	l9110_Init();
+//	L9110_Straight(&l9110, L9110_DIRECTION_FORWARD, 90);  // PWM 80%
+
 	for (;;) {
-		L9110_Straight(&l9110, L9110_DIRECTION_FORWARD, 90);  // PWM 80%
+//		count = ENC_Read(&hEnc);
+//		count_Enc = TIMER4->CNT;
 
+		L9110_Straight_Dis(&l9110, L9110_DIRECTION_FORWARD, 80 ,TIMER4 ,1200);
 		TIMER2_5_Delay(&Timer3, 1999);
-
-		L9110_Stop(&l9110);
-		TIMER2_5_Delay(&Timer3, 999);
-
-		L9110_Straight(&l9110, L9110_DIRECTION_REVERSE, 90);  // PWM 80%
-
-		TIMER2_5_Delay(&Timer3, 1999);
-
-		L9110_Stop(&l9110);
-		TIMER2_5_Delay(&Timer3, 999);
+//
+//		L9110_Stop(&l9110);
+//
+//		L9110_Straight(&l9110, L9110_DIRECTION_REVERSE, 90);  // PWM 80%
+//
+//		TIMER2_5_Delay(&Timer3, 1999);
+//
+//		L9110_Stop(&l9110);
+//		TIMER2_5_Delay(&Timer3, 999);
 
 	}
 }
@@ -83,3 +88,19 @@ void SysClock_Init(void) {
 //	RCC->CFGR |= (0x4 << 24);
 
 }
+void Encoder_Init(void) {
+	EnA = GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_INPUT,
+			GPIO_CNF_INPUT_FLOATING);
+	EnB = GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_INPUT,
+			GPIO_CNF_INPUT_FLOATING);
+	TimEnc.Instance = TIMER4;
+	TimEnc.Config.Feature = TIM_FEATURE_ENCODER_MODE;
+	TimEnc.Config.Mode = TIM_MODE_UP;
+	TimEnc.Config.SMode = TIM_ENCODER_MODE_3;
+	TimEnc.Config.Prs = 0;
+	TimEnc.Config.Arr = 65535;
+	TimEnc.Config.Channel = TIM_CHANNEL_1;
+	TIM2_5_Init(&TimEnc);
+
+}
+
