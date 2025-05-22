@@ -17,62 +17,31 @@
  */
 #include <stm32f103xx.h>
 #include <gpiox_driver.h>
-#include <L9110_driver.h>
-#include <encoder_driver.h>
+#include <analog_driver.h>
 #include <rcc_driver.h>
-
+#include <timerx_driver.h>
 void SysClock_Init(void);
-void l9110_Init(void);
-void Encoder_Init(void);
-GPIO_Handle_t PwmB, PwmA, EnA, EnB;
-RCC_Handle_t hRcc;
-L9110_Handle_t l9110;
-ENC_Handle_t hEnc;
+void IR_Init(void);
 
-//I2C_Handle_t I2c1;
-TIMER2_5_Handle_t Timer2, Timer3, TimEnc;
-int16_t count_Enc =0;
+GPIO_Handle_t Analog1;
+RCC_Handle_t hRcc;
+ADC_Handle_t hAdc;
+uint16_t sensor = 0;
+TIMER2_5_Handle_t Timer2;
+
+
 int main(void) {
 	SysClock_Init();
+	IR_Init();
+	Timer2 = TIMER2_5_Init_Delay(TIMER2, 719999);
 
-	Timer3 = TIMER2_5_Init_Delay(TIMER3, 719999);
-	Encoder_Init();
-	l9110_Init();
-//	L9110_Straight(&l9110, L9110_DIRECTION_FORWARD, 90);  // PWM 80%
-
-	for (;;) {
-//		count = ENC_Read(&hEnc);
-//		count_Enc = TIMER4->CNT;
-
-		L9110_Straight_Dis(&l9110, L9110_DIRECTION_FORWARD, 80 ,TIMER4 ,1200);
-		TIMER2_5_Delay(&Timer3, 1999);
-//
-//		L9110_Stop(&l9110);
-//
-//		L9110_Straight(&l9110, L9110_DIRECTION_REVERSE, 90);  // PWM 80%
-//
-//		TIMER2_5_Delay(&Timer3, 1999);
-//
-//		L9110_Stop(&l9110);
-//		TIMER2_5_Delay(&Timer3, 999);
+	for (;;) {1
+		sensor = ADC_ReadChannel(ADC1, ADC_CHANNEL_0);
+		TIMER2_5_Delay(&Timer2, 99);
 
 	}
 }
-void l9110_Init() {
-	PwmB = GPIO_Init(GPIOA, GPIO_PIN_1, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_PP);
-	PwmA = GPIO_Init(GPIOA, GPIO_PIN_0, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_PP);
-	Timer2.Instance = TIMER2;
-	Timer2.Config.Feature = TIM_FEATURE_PWM;
-	Timer2.Config.Prs = 71;
-	Timer2.Config.Arr = 100;
-	Timer2.Config.Channel = TIM_CHANNEL_1;
-	Timer2.Config.OCMode = TIM_OCMODE_PWM1;
-	TIM2_5_Init(&Timer2);
-	l9110.PWMB_Pin = &PwmB;
-	l9110.PWMA_Pin = &PwmA;
-	l9110.hTIM = &Timer2;
 
-}
 void SysClock_Init(void) {
 
 	hRcc.Config.clk_src = RCC_CLK_PLL;       // Sử dụng PLL làm nguồn xung chính
@@ -84,23 +53,20 @@ void SysClock_Init(void) {
 
 	// Gọi hàm cấu hình đồng hồ
 	RCC_ConfigClock(&hRcc);
-//	RCC->CFGR &= ~(0x7 << 24);
-//	RCC->CFGR |= (0x4 << 24);
 
 }
-void Encoder_Init(void) {
-	EnA = GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_INPUT,
-			GPIO_CNF_INPUT_FLOATING);
-	EnB = GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_INPUT,
-			GPIO_CNF_INPUT_FLOATING);
-	TimEnc.Instance = TIMER4;
-	TimEnc.Config.Feature = TIM_FEATURE_ENCODER_MODE;
-	TimEnc.Config.Mode = TIM_MODE_UP;
-	TimEnc.Config.SMode = TIM_ENCODER_MODE_3;
-	TimEnc.Config.Prs = 0;
-	TimEnc.Config.Arr = 65535;
-	TimEnc.Config.Channel = TIM_CHANNEL_1;
-	TIM2_5_Init(&TimEnc);
+
+void IR_Init(void)
+{
+	Analog1 = GPIO_Init(GPIOA, GPIO_PIN_0, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG);
+	hAdc.Instance = ADC1;
+	hAdc.Config.channel[0] = ADC_CHANNEL_0;
+	hAdc.Config.sampleTime = ADC_SAMPLE_71CYCLES5;
+	hAdc.Config.numChannels = 1;
+	ADC_Init(&hAdc);
+
+
 
 }
+
 

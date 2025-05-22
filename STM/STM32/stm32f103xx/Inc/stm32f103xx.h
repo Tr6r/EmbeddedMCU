@@ -53,6 +53,9 @@
 #define I2C1_ADDRESS 	(PERIPHERAL_ADDRESS + 0x00005400U)
 #define I2C2_ADDRESS 	(PERIPHERAL_ADDRESS + 0x00005800U)
 
+//ADC ADDRESS
+#define ADC1_ADDRESS   	(PERIPHERAL_ADDRESS + 0x00012400U)
+#define ADC2_ADDRESS   	(PERIPHERAL_ADDRESS + 0x00012800U)
 
 #define FLASH_BASE        (0x40022000UL) /*!< Base address of FLASH registers */
 //struct GPIO
@@ -196,6 +199,13 @@ typedef struct {
 #define TIMER4_DIS_CLOCK()  (RCC->APB1ENR &= ~(1 << 2))  // Enable clock for GPIOA
 #define TIMER5_DIS_CLOCK()  (RCC->APB1ENR &= ~(1 << 3))  // Enable clock for GPIOA
 
+//ADC control Clock
+#define ADC1_EN_CLOCK()  (RCC->APB2ENR |= (1 << 9))  // Enable clock for ADC1
+#define ADC2_EN_CLOCK()  (RCC->APB2ENR |= (1 << 10))  // Enable clock for ADC2
+
+#define ADC1_DIS_CLOCK()  (RCC->APB2ENR &= ~ (1 << 9))  // Disable clock for ADC1
+#define ADC2_DIS_CLOCK()  (RCC->APB2ENR &= ~ (1 << 10)) // Disable clock for ADC2
+
 //struct TIMER2 -TIMER5
 typedef struct {
 	volatile uint32_t CR1;       // 0x00: Control register 1
@@ -272,6 +282,37 @@ typedef struct {
 
 #define I2C1 ((I2C_TypeDef_t*) I2C1_ADDRESS)
 #define I2C2 ((I2C_TypeDef_t*) I2C2_ADDRESS)
+
+
+
+
+
+typedef struct
+{
+  volatile uint32_t SR;       // 0x00 - Status register
+  volatile uint32_t CR1;      // 0x04 - Control register 1
+  volatile uint32_t CR2;      // 0x08 - Control register 2
+  volatile uint32_t SMPR1;    // 0x0C - Sample time register 1 (channels 10–17)
+  volatile uint32_t SMPR2;    // 0x10 - Sample time register 2 (channels 0–9)
+  volatile uint32_t JOFR1;    // 0x14 - Injected offset register 1
+  volatile uint32_t JOFR2;    // 0x18
+  volatile uint32_t JOFR3;    // 0x1C
+  volatile uint32_t JOFR4;    // 0x20
+  volatile uint32_t HTR;      // 0x24 - Analog watchdog high threshold
+  volatile uint32_t LTR;      // 0x28 - Analog watchdog low threshold
+  volatile uint32_t SQR1;     // 0x2C - Regular sequence register 1
+  volatile uint32_t SQR2;     // 0x30
+  volatile uint32_t SQR3;     // 0x34
+  volatile uint32_t JSQR;     // 0x38 - Injected sequence register
+  volatile uint32_t JDR1;     // 0x3C - Injected data register 1
+  volatile uint32_t JDR2;     // 0x40
+  volatile uint32_t JDR3;     // 0x44
+  volatile uint32_t JDR4;     // 0x48
+  volatile uint32_t DR;       // 0x4C - Regular data register
+} ADC_TypeDef_t;
+
+#define ADC1  			((ADC_TypeDef_t *) ADC1_ADDRESS)
+#define ADC2  			((ADC_TypeDef_t *) ADC2_ADDRESS)
 
 typedef struct
 {
