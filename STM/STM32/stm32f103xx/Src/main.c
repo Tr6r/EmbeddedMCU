@@ -17,29 +17,31 @@
  */
 #include <stm32f103xx.h>
 #include <gpiox_driver.h>
-#include <analog_driver.h>
-#include <rcc_driver.h>
 #include <timerx_driver.h>
+#include <lcd_driver.h>
+#include <rcc_driver.h>
 void SysClock_Init(void);
-void IR_Init(void);
+void LCD(void);
 
-GPIO_Handle_t Analog1;
+GPIO_Handle_t sda, scl;
 RCC_Handle_t hRcc;
-ADC_Handle_t hAdc;
-uint16_t sensor = 0;
+LCD_Handle_t lcd;
 TIMER2_5_Handle_t Timer2;
-
+I2C_Handle_t i2c1;
 
 int main(void) {
-	SysClock_Init();
-	IR_Init();
-	Timer2 = TIMER2_5_Init_Delay(TIMER2, 719999);
+    SysClock_Init(); //72Mhz
+    LCD();
+    Timer2 = TIMER2_5_Init_Delay(TIMER2, 719999);
 
-	for (;;) {1
-		sensor = ADC_ReadChannel(ADC1, ADC_CHANNEL_0);
-		TIMER2_5_Delay(&Timer2, 99);
 
-	}
+//    lcd_i2c_send(&i2c1, 0x27, "h3h3");
+    lcd_i2c_msg(&i2c1, 0x27, 1, 2, "hehehehee");
+    lcd_i2c_msg(&i2c1, 0x27, 2, 1, "Cuong");
+
+    for (;;) {
+        // Có thể thêm code kiểm tra trạng thái LCD định kỳ
+    }
 }
 
 void SysClock_Init(void) {
@@ -55,18 +57,18 @@ void SysClock_Init(void) {
 	RCC_ConfigClock(&hRcc);
 
 }
+void LCD(void) {
+	sda = GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
+	scl = GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
+	i2c1 = I2C_Init(
+	I2C1,                        // Instance: phần cứng I2C1
+			100000,                     // ClockSpeed: 100kHz
+			I2C_ADDRESSINGMODE_7BIT,    // AddressingMode: 7-bit
+			0x00,                       // OwnAddress: địa chỉ I2C
+			I2C_ACK_ENABLE,             // Acknowledge: bật ACK
+			I2C_DUTYCYCLE_2             // DutyCycle: chế độ thường
+			);
 
-void IR_Init(void)
-{
-	Analog1 = GPIO_Init(GPIOA, GPIO_PIN_0, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG);
-	hAdc.Instance = ADC1;
-	hAdc.Config.channel[0] = ADC_CHANNEL_0;
-	hAdc.Config.sampleTime = ADC_SAMPLE_71CYCLES5;
-	hAdc.Config.numChannels = 1;
-	ADC_Init(&hAdc);
-
-
-
+	lcd_i2c_init(&i2c1, 0x27);
 }
-
 
