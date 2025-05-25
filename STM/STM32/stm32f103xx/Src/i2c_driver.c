@@ -114,8 +114,8 @@ State_t I2C_Write(I2C_Handle_t *hi2c, uint8_t Address, uint8_t *data, uint16_t s
     return STATE_OK;
 }
 
-void I2C_ScanDevices(I2C_Handle_t *hi2c, USART_Handle_t *hUsartx) {
-	USART_SendString(hUsartx, "Scanning I2C devices...\r\n");
+void I2C_ScanDevices(I2C_Handle_t *hi2c) {
+//	USART_SendString(hUsartx, "Scanning I2C devices...\r\n");
 
 	for (uint8_t addr = 1; addr < 127; addr++) {
 		// 1. Gửi START
@@ -134,9 +134,9 @@ void I2C_ScanDevices(I2C_Handle_t *hi2c, USART_Handle_t *hUsartx) {
 			(void) hi2c->Instance->SR1; // Clear ADDR
 			(void) hi2c->Instance->SR2;
 
-			USART_SendString(hUsartx, "Found at: 0x");
-			USART_SendHex(hUsartx, addr);
-			USART_SendString(hUsartx, "\r\n");
+//			USART_SendString(hUsartx, "Found at: 0x");
+//			USART_SendHex(hUsartx, addr);
+//			USART_SendString(hUsartx, "\r\n");
 		}
 
 		// 4. Gửi STOP
@@ -150,6 +150,6 @@ void I2C_ScanDevices(I2C_Handle_t *hi2c, USART_Handle_t *hUsartx) {
 			;
 	}
 
-	USART_SendString(hUsartx, "Scan done.\r\n");
+//	USART_SendString(hUsartx, "Scan done.\r\n");
 }
 
