@@ -17,31 +17,77 @@
  */
 #include <stm32f103xx.h>
 #include <gpiox_driver.h>
-#include <timerx_driver.h>
-#include <lcd_driver.h>
+#include <analog_driver.h>
 #include <rcc_driver.h>
+#include <timerx_driver.h>
 void SysClock_Init(void);
-void LCD(void);
+void IR_Init(void);
 
-GPIO_Handle_t sda, scl;
+GPIO_Handle_t Analog1;
 RCC_Handle_t hRcc;
-LCD_Handle_t lcd;
+ADC_Handle_t hAdc;
+uint16_t sensor = 0;
 TIMER2_5_Handle_t Timer2;
-I2C_Handle_t i2c1;
+float distance_cm = 0.0;
 
-int main(void) {
-    SysClock_Init(); //72Mhz
-    LCD();
-    Timer2 = TIMER2_5_Init_Delay(TIMER2, 719999);
-
-
-//    lcd_i2c_send(&i2c1, 0x27, "h3h3");
-    lcd_i2c_msg(&i2c1, 0x27, 1, 2, "hehehehee");
-    lcd_i2c_msg(&i2c1, 0x27, 2, 1, "Cuong");
-
-    for (;;) {
-        // Có thể thêm code kiểm tra trạng thái LCD định kỳ
+#define AVERAGE_SAMPLE 5
+uint16_t Read_ADC_Average()
+{
+    uint32_t sum = 0;
+    for (int i = 0; i < AVERAGE_SAMPLE; i++) {
+        sum += ADC_ReadChannel(ADC1, ADC_CHANNEL_0);
     }
+    return (uint16_t)(sum / AVERAGE_SAMPLE);
+}
+float SmoothFilter(float previous, float current, float alpha)
+{
+    return alpha * current + (1.0f - alpha) * previous;
+}
+float LookupDistance(uint16_t adcValue)
+{
+    const uint16_t adc_table[] = {1500, 1120, 860, 700, 500, 380, 250, 160, 90};
+    const float distance_table[] = {2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
+    const int table_size = sizeof(adc_table) / sizeof(adc_table[0]);
+
+    if (adcValue >= adc_table[0]) return 2.00f; // Quá gần (<2cm)
+    if (adcValue <= adc_table[table_size - 1]) return 10.00f; // Quá xa (>10cm)
+
+    for (int i = 0; i < table_size - 1; i++) {
+        if (adcValue <= adc_table[i] && adcValue >= adc_table[i+1]) {
+            float ratio = (float)(adcValue - adc_table[i+1]) / (adc_table[i] - adc_table[i+1]);
+            float distance = distance_table[i+1] + ratio * (distance_table[i] - distance_table[i+1]);
+
+            // Làm tròn 2 chữ số sau dấu phẩy
+            distance = (float)((int)(distance * 100 + 0.5f)) / 100.0f;
+
+            return distance;
+        }
+    }
+
+    return -1.0f; // Lỗi
+}
+int main(void) {
+	SysClock_Init();
+	IR_Init();
+	Timer2 = TIMER2_5_Init_Delay(TIMER2, 719999);
+
+	float filteredADC = 0;
+	float alpha = 0.3f;
+
+	for (;;) {
+		uint16_t adcNow = Read_ADC_Average();
+		filteredADC = SmoothFilter(filteredADC, (float)adcNow, alpha);
+
+		// Nếu bạn muốn ra cm thì gọi GetDistanceCm(filteredADC);
+		distance_cm = LookupDistance((uint16_t)filteredADC);
+
+		// Hoặc dùng luôn filteredADC để làm PID (không cần tính ra cm)
+		// pid_output = PID_Calculate(setpoint, filteredADC, ...);
+
+		TIMER2_5_Delay(&Timer2, 99);
+
+	}
+
 }
 
 void SysClock_Init(void) {
@@ -57,18 +103,18 @@ void SysClock_Init(void) {
 	RCC_ConfigClock(&hRcc);
 
 }
-void LCD(void) {
-	sda = GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
-	scl = GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
-	i2c1 = I2C_Init(
-	I2C1,                        // Instance: phần cứng I2C1
-			100000,                     // ClockSpeed: 100kHz
-			I2C_ADDRESSINGMODE_7BIT,    // AddressingMode: 7-bit
-			0x00,                       // OwnAddress: địa chỉ I2C
-			I2C_ACK_ENABLE,             // Acknowledge: bật ACK
-			I2C_DUTYCYCLE_2             // DutyCycle: chế độ thường
-			);
 
-	lcd_i2c_init(&i2c1, 0x27);
+void IR_Init(void)
+{
+	Analog1 = GPIO_Init(GPIOA, GPIO_PIN_0, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG);
+	hAdc.Instance = ADC1;
+	hAdc.Config.channel[0] = ADC_CHANNEL_0;
+	hAdc.Config.sampleTime = ADC_SAMPLE_71CYCLES5;
+	hAdc.Config.numChannels = 1;
+	ADC_Init(&hAdc);
+
+
+
 }
+
 
