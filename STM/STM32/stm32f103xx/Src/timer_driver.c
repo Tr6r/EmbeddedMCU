@@ -83,7 +83,7 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 		}
 
 		// 4. Không đảo pha - nếu cần đảo thì set bit CC1P / CC2P
-//		hTimerx->Instance->CCER &= ~((1 << 1) | (1 << 5)); // CC1P = 0, CC2P = 0
+		hTimerx->Instance->CCER &= ~((1 << 1) | (1 << 5)); // CC1P = 0, CC2P = 0
 
 		// 6. Đặt ARR và PSC
 		hTimerx->Instance->ARR = hTimerx->Config.Arr;
@@ -93,7 +93,7 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 		// 7. Reset counter
 		hTimerx->Instance->CR1 |= (1 << 0);
 		hTimerx->Instance->CNT = 0;
-//		NVIC_EnableIRQ(TIM2_IRQn);
+//		NVIC_EnableIRQ(TIM4_IRQn);
 
 		break;
 	case TIM_FEATURE_PWM:

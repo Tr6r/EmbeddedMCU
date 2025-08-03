@@ -68,9 +68,12 @@ void L9110_Straight_Dis(L9110_Handle_t *Instance, L9110_Direction_t Dir,
 	while (abs((int16_t)(EncInstance->CNT)) < Enc);
 	// Sau khi đạt 666, dừng động cơ
 
-	L9110_Straight(Instance, Dir == L9110_DIRECTION_FORWARD ? L9110_DIRECTION_REVERSE :L9110_DIRECTION_FORWARD, 90);  // PWM 80%
-	for (volatile int i = 0; i < 50000; i++);  // Delay nhỏ, có thể tăng giảm
+	L9110_Straight(Instance, Dir == L9110_DIRECTION_FORWARD ? L9110_DIRECTION_REVERSE :L9110_DIRECTION_FORWARD, 100);  // PWM 80%
+	for (volatile int i = 0; i < 100000; i++);  // Delay nhỏ, có thể tăng giảm
 
 	L9110_Stop(Instance);
 
 }
+
+
+
