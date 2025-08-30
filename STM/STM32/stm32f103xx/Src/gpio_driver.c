@@ -53,6 +53,12 @@ GPIO_Handle_t GPIO_Init(GPIO_TypeDef *Instance, GPIO_Pin_t Pin,
 			// Input with pull-up/down
 
 		}
+		 if (CNF == GPIO_CNF_INPUT_PU_PD) {
+		        // mặc định: cho pull-up
+		        Instance->ODR |= (1 << Pin);
+		        // nếu muốn pull-down thì:
+		        // Instance->ODR &= ~(1 << Pin);
+		    }
 	} else {
 		if (CNF > 0x01)
 		{

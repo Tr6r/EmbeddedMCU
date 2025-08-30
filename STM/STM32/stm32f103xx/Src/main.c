@@ -17,71 +17,106 @@
  */
 #include <stm32f103xx.h>
 #include <gpiox_driver.h>
-#include <timerx_driver.h>
 #include <rcc_driver.h>
-#include <ssd1306_i2c_driver.h>
-
+#include <timerx_driver.h>
+#include <exti_driver.h>
+#include <afio_driver.h>
 void SysClock_Init(void);
-void OLED_Init(void);
-void I2C_INIT(void);
+void InitButton(void);
+void InitLedBuiltIn(void);
 
-GPIO_Handle_t sda, scl;
+
 RCC_Handle_t hRcc;
+GPIO_Handle_t LedBuiltIn;
+
+GPIO_Handle_t Button1;
+GPIO_Handle_t Button2;
+AFIO_Handle_t Button1_AFIO;
+AFIO_Handle_t Button2_AFIO;
+
+EXTI_Handle_t Button1_EXTI;
+EXTI_Handle_t Button2_EXTI;
+
 TIMER2_5_Handle_t Timer2;
-I2C_Handle_t i2c1;
-SSD1306_Handle_t oled;
+
 
 int main(void) {
-    SysClock_Init(); // 72 MHz
-    I2C_INIT();
-    OLED_Init();
-//    Timer2 = TIMER2_5_Init_Delay(TIMER2, 719999);
-//
-    SSD1306_DrawPixel(&oled, 10, 10, 1);
-    SSD1306_DrawPixel(&oled, 11, 11, 1);
-    SSD1306_DrawPixel(&oled, 12, 12, 1);
-    SSD1306_Update(&oled);
+	SysClock_Init();
+	AFIO_EN_CLOCK();
+	InitLedBuiltIn();
+	InitButton();
+	Timer2 = TIMER2_5_Init_Delay(TIMER2, 719999);
 
-    for (;;) {
-        // Có thể vẽ thêm, animation, hoặc kiểm tra trạng thái OLED
+	for (;;) {
+		TIMER2_5_Delay(&Timer2, 99);
+
+	}
+
+}
+
+
+void EXTI3_IRQHandler(void) {
+    if (EXTI->PR & (1 << 3)) {   // Kiểm tra pending bit
+        EXTI->PR |= (1 << 3);    // Xóa pending bit
+        GPIO_Toggle(GPIOC, GPIO_PIN_13);
     }
 }
 
+void EXTI4_IRQHandler(void) {
+    if (EXTI->PR & (1 << 4)) {
+        EXTI->PR |= (1 << 4);
+        GPIO_Toggle(GPIOC, GPIO_PIN_13);
+    }
+}
 void SysClock_Init(void) {
-    hRcc.Config.clk_src = RCC_CLK_PLL;
-    hRcc.Config.pll_src = RCC_PLL_SRC_HSE;
-    hRcc.Config.pll_mul = RCC_PLL_MUL_9;
-    hRcc.Config.ahb_prescaler = RCC_AHB_DIV_1;
-    hRcc.Config.apb1_prescaler = RCC_APB_DIV_2;
-    hRcc.Config.apb2_prescaler = RCC_APB_DIV_1;
-    RCC_ConfigClock(&hRcc);
+
+	hRcc.Config.clk_src = RCC_CLK_PLL;       // Sử dụng PLL làm nguồn xung chính
+	hRcc.Config.pll_src = RCC_PLL_SRC_HSE; // Chọn HSE làm nguồn đầu vào cho PLL
+	hRcc.Config.pll_mul = RCC_PLL_MUL_9;            // Hệ số nhân PLL = 9
+	hRcc.Config.ahb_prescaler = RCC_AHB_DIV_1;      // AHB không chia
+	hRcc.Config.apb1_prescaler = RCC_APB_DIV_2;     // APB1 chia 2
+	hRcc.Config.apb2_prescaler = RCC_APB_DIV_1;     // APB2 không chia
+
+	// Gọi hàm cấu hình đồng hồ
+	RCC_ConfigClock(&hRcc);
 
 }
-void I2C_INIT(void)
+void InitLedBuiltIn(void)
 {
-    sda = GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
-    scl = GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
-
-    i2c1 = I2C_Init(
-        I2C1,
-        100000,
-        I2C_ADDRESSINGMODE_7BIT,
-        0x00,
-        I2C_ACK_ENABLE,
-        I2C_DUTYCYCLE_2
-    );
-    I2C_ScanDevices(&i2c1);
+	LedBuiltIn = GPIO_Init(GPIOC, GPIO_PIN_13, GPIO_MODE_OUTPUT_2MHz, GPIO_CNF_OUTPUT_PP);
 
 }
-void OLED_Init(void) {
+void InitButton(void)
+{
+	AFIO->MAPR &= ~(0x7 << 24);    // Clear SWJ_CFG[26:24]
+	AFIO->MAPR |=  (0x2 << 24);    // 010 = JTAG disable, SWD enable
+    Button1 = GPIO_Init(GPIOB, GPIO_PIN_3, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PU_PD);
+    Button2 = GPIO_Init(GPIOB, GPIO_PIN_4, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PU_PD);
 
+    Button1_AFIO.Constance = AFIO;
+    Button1_AFIO.Config.Function     = AFIO_FUNC_EXTI;
+    Button1_AFIO.Config.EXTI_Line    = 3;      // Line 3
+    Button1_AFIO.Config.GPIO_PortSrc = 1;      // PortB = 1
+    AFIO_Init(&Button1_AFIO);
 
-    oled.Instance = &i2c1;
-    oled.Config.Address = 0x3C;
-    oled.Config.Width = 128;
-    oled.Config.Height = 32;
+    Button1_EXTI.Constance = EXTI;
+    Button1_EXTI.Config.EXTI_Line = 3;
+    Button1_EXTI.Config.Trigger   = EXTI_TRIGGER_FALLING; // Nhấn nút thì xuống mức 0
+    Button1_EXTI.Config.PortSrc   = 1;
+    EXTI_Init(&Button1_EXTI);
 
-    SSD1306_Init(&oled);
+    Button2_AFIO.Constance = AFIO;
+    Button2_AFIO.Config.Function     = AFIO_FUNC_EXTI;
+    Button2_AFIO.Config.EXTI_Line    = 4;      // Line 4
+    Button2_AFIO.Config.GPIO_PortSrc = 1;      // PortB = 1
+    AFIO_Init(&Button2_AFIO);
+
+    // PB4 -> EXTI4
+    Button2_EXTI.Constance = EXTI;
+
+    Button2_EXTI.Config.EXTI_Line = 4;
+    Button2_EXTI.Config.Trigger   = EXTI_TRIGGER_FALLING;
+    Button2_EXTI.Config.PortSrc   = 1;
+    EXTI_Init(&Button2_EXTI);
 }
-
 
