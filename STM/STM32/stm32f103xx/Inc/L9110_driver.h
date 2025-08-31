@@ -9,7 +9,7 @@
 #define L9110_DRIVER_H_
 
 #include <stm32f103xx.h>
-#include <timerx_driver.h>
+#include <timer_advance_driver.h>
 #include <gpiox_driver.h>
 #include <encoder_driver.h>
 typedef enum {
@@ -19,9 +19,9 @@ typedef enum {
 
 typedef struct
 {
-    GPIO_Handle_t *PWMA_Pin;
-    GPIO_Handle_t *PWMB_Pin;
-    TIMER2_5_Handle_t *hTIM;
+    GPIO_Handle_t *Pwm_Pin;
+    GPIO_Handle_t *Digital_Pin;
+    TIMER_Advance_Handle_t *hTIM;
 } L9110_Handle_t;
 
 void L9110_Straight(L9110_Handle_t *Instance,L9110_Direction_t Dir, uint16_t pwm);

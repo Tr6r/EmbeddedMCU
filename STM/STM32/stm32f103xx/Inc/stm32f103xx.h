@@ -29,6 +29,7 @@
 
 //Timerx_ADDRESS
 
+#define TIMER1_ADDRESS   (PERIPHERAL_ADDRESS + 0x00012C00U)
 #define TIMER2_ADDRESS   (PERIPHERAL_ADDRESS)
 #define TIMER3_ADDRESS   (PERIPHERAL_ADDRESS + 0x00000400U)
 #define TIMER4_ADDRESS   (PERIPHERAL_ADDRESS + 0x00000800U)
@@ -188,12 +189,15 @@ typedef struct {
 
 #define I2C1_DIS_CLOCK()  (RCC->APB1ENR &= ~(1 << 21))  // Enable clock for GPIOA
 #define I2C2_DIS_CLOCK()  (RCC->APB1ENR &= ~(1 << 22))  // Enable clock for GPIOA
+
 //Timerx_Conttrol_Clock
+#define TIMER1_EN_CLOCK()   (RCC->APB2ENR |= (1 << 11))   // Enable clock for TIM1
 #define TIMER2_EN_CLOCK()  (RCC->APB1ENR |= (1 << 0))  // Enable clock for GPIOA
 #define TIMER3_EN_CLOCK()  (RCC->APB1ENR |= (1 << 1))  // Enable clock for GPIOA
 #define TIMER4_EN_CLOCK()  (RCC->APB1ENR |= (1 << 2))  // Enable clock for GPIOA
 #define TIMER5_EN_CLOCK()  (RCC->APB1ENR |= (1 << 3))  // Enable clock for GPIOA
 
+#define TIMER1_DIS_CLOCK()  (RCC->APB2ENR &= ~(1 << 11))  // Disable clock for TIM1
 #define TIMER2_DIS_CLOCK()  (RCC->APB1ENR &= ~(1 << 0))  // Enable clock for GPIOA
 #define TIMER3_DIS_CLOCK()  (RCC->APB1ENR &= ~(1 << 1))  // Enable clock for GPIOA
 #define TIMER4_DIS_CLOCK()  (RCC->APB1ENR &= ~(1 << 2))  // Enable clock for GPIOA
@@ -234,6 +238,32 @@ typedef struct {
 #define TIMER3 ((TIMER2_5_TypeDef_t *)TIMER3_ADDRESS)
 #define TIMER4 ((TIMER2_5_TypeDef_t *)TIMER4_ADDRESS)
 #define TIMER5 ((TIMER2_5_TypeDef_t *)TIMER5_ADDRESS)
+
+
+typedef struct
+{
+    volatile uint32_t CR1;        /*!< Control register 1,              Address offset: 0x00 */
+    volatile uint32_t CR2;        /*!< Control register 2,              Address offset: 0x04 */
+    volatile uint32_t SMCR;       /*!< Slave mode control register,     Address offset: 0x08 */
+    volatile uint32_t DIER;       /*!< DMA/Interrupt enable register,   Address offset: 0x0C */
+    volatile uint32_t SR;         /*!< Status register,                 Address offset: 0x10 */
+    volatile uint32_t EGR;        /*!< Event generation register,       Address offset: 0x14 */
+    volatile uint32_t CCMR1;      /*!< Capture/compare mode register 1, Address offset: 0x18 */
+    volatile uint32_t CCMR2;      /*!< Capture/compare mode register 2, Address offset: 0x1C */
+    volatile uint32_t CCER;       /*!< Capture/compare enable register, Address offset: 0x20 */
+    volatile uint32_t CNT;        /*!< Counter,                         Address offset: 0x24 */
+    volatile uint32_t PSC;        /*!< Prescaler,                       Address offset: 0x28 */
+    volatile uint32_t ARR;        /*!< Auto-reload register,            Address offset: 0x2C */
+    volatile uint32_t RCR;        /*!< Repetition counter register,     Address offset: 0x30 */
+    volatile uint32_t CCR1;       /*!< Capture/compare register 1,      Address offset: 0x34 */
+    volatile uint32_t CCR2;       /*!< Capture/compare register 2,      Address offset: 0x38 */
+    volatile uint32_t CCR3;       /*!< Capture/compare register 3,      Address offset: 0x3C */
+    volatile uint32_t CCR4;       /*!< Capture/compare register 4,      Address offset: 0x40 */
+    volatile uint32_t BDTR;       /*!< Break and dead-time register,    Address offset: 0x44 */
+    volatile uint32_t DCR;        /*!< DMA control register,            Address offset: 0x48 */
+    volatile uint32_t DMAR;       /*!< DMA address for full transfer,   Address offset: 0x4C */
+} TIMER_Advance_TypeDef_t;
+#define TIMER1   ((TIMER_Advance_TypeDef_t *) TIMER1_ADDRESS)
 
 //Struct EXTI
 typedef struct {

@@ -19,8 +19,8 @@ typedef enum {
 } GPIO_Mode_t;
 
 typedef enum {
-	GPIO_HIGH,
 	GPIO_LOW,
+	GPIO_HIGH,
 } GPIO_State_t;
 
 

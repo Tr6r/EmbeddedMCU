@@ -17,49 +17,45 @@
  */
 #include <stm32f103xx.h>
 #include <gpiox_driver.h>
-#include <timerx_driver.h>
+#include <L9110_driver.h>
 #include <rcc_driver.h>
-#include <ssd1306_i2c_driver.h>
-#include <exti_driver.h>
-#include <afio_driver.h>
+#include "timer_advance_driver.h"
 
 void SysClock_Init(void);
-void OLED_Init(void);
-void I2C_INIT(void);
+void l9110_Init(void);
 
-GPIO_Handle_t sda, scl;
+GPIO_Handle_t  Digital,Pwm;
 RCC_Handle_t hRcc;
-TIMER2_5_Handle_t Timer2;
-I2C_Handle_t i2c1;
-SSD1306_Handle_t oled;
+L9110_Handle_t l9110;
 
-GPIO_Handle_t Button1;
-GPIO_Handle_t Button2;
-AFIO_Handle_t Button1_AFIO;
-AFIO_Handle_t Button2_AFIO;
-
-EXTI_Handle_t Button1_EXTI;
-EXTI_Handle_t Button2_EXTI;
-
+TIMER_Advance_Handle_t htim1;
 
 int main(void) {
-	AFIO_EN_CLOCK();
+	SysClock_Init();
+	l9110_Init();
+	L9110_Run(&l9110, L9110_DIRECTION_FORWARD, 35);
 
-    SysClock_Init(); // 72 MHz
-    I2C_INIT();
-    OLED_Init();
-    InitButton();
-
-//    Timer2 = TIMER2_5_Init_Delay(TIMER2, 719999);
-//
-    SSD1306_WriteString(&oled, 0, 0, "33:33", 1);
-
-
-    for (;;) {
-        // Có thể vẽ thêm, animation, hoặc kiểm tra trạng thái OLED
-    }
+	for (;;) {
+	}
 }
+void l9110_Init() {
+	Pwm = GPIO_Init(GPIOA, GPIO_PIN_10, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_PP);
+	Digital = GPIO_Init(GPIOA, GPIO_PIN_12, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_OUTPUT_PP);
 
+	htim1.Instance = TIMER1;   // Địa chỉ base của TIM1
+	htim1.Config.Feature     = TIM1_FEATURE_PWM;
+	htim1.Config.Prescaler   = 72 - 1;       // PSC = 71 => 1MHz tick (nếu fclk = 72MHz)
+	htim1.Config.AutoReload  = 1000 - 1;     // ARR = 999 => 1kHz PWM
+	htim1.Config.Channel     = TIM1_CHANNEL_3;
+	htim1.Config.OCMode      = TIM1_OCMODE_PWM1;
+	htim1.Config.CompareValue= 500;          // 50% duty
+	TIMER_Advance_Init(&htim1);
+
+	l9110.Pwm_Pin = &Pwm;
+	l9110.Digital_Pin = &Digital;
+	l9110.hTIM = &htim1;
+
+}
 void SysClock_Init(void) {
     hRcc.Config.clk_src = RCC_CLK_PLL;
     hRcc.Config.pll_src = RCC_PLL_SRC_HSE;
@@ -70,78 +66,6 @@ void SysClock_Init(void) {
     RCC_ConfigClock(&hRcc);
 
 }
-void EXTI3_IRQHandler(void) {
-    if (EXTI->PR & (1 << 3)) {   // Kiểm tra pending bit
-        EXTI->PR |= (1 << 3);    // Xóa pending bit
-        SSD1306_WriteString(&oled, 0, 0, "11:11", 1);
-    }
-}
 
-void EXTI4_IRQHandler(void) {
-    if (EXTI->PR & (1 << 4)) {
-        EXTI->PR |= (1 << 4);
-        SSD1306_WriteString(&oled, 0, 0, "22:22", 1);
-    }
-}
-
-void InitButton(void)
-{
-	AFIO->MAPR &= ~(0x7 << 24);    // Clear SWJ_CFG[26:24]
-	AFIO->MAPR |=  (0x2 << 24);    // 010 = JTAG disable, SWD enable
-    Button1 = GPIO_Init(GPIOB, GPIO_PIN_3, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PU_PD);
-    Button2 = GPIO_Init(GPIOB, GPIO_PIN_4, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PU_PD);
-
-    Button1_AFIO.Constance = AFIO;
-    Button1_AFIO.Config.Function     = AFIO_FUNC_EXTI;
-    Button1_AFIO.Config.EXTI_Line    = 3;      // Line 3
-    Button1_AFIO.Config.GPIO_PortSrc = 1;      // PortB = 1
-    AFIO_Init(&Button1_AFIO);
-
-    Button1_EXTI.Constance = EXTI;
-    Button1_EXTI.Config.EXTI_Line = 3;
-    Button1_EXTI.Config.Trigger   = EXTI_TRIGGER_FALLING; // Nhấn nút thì xuống mức 0
-    Button1_EXTI.Config.PortSrc   = 1;
-    EXTI_Init(&Button1_EXTI);
-
-    Button2_AFIO.Constance = AFIO;
-    Button2_AFIO.Config.Function     = AFIO_FUNC_EXTI;
-    Button2_AFIO.Config.EXTI_Line    = 4;      // Line 4
-    Button2_AFIO.Config.GPIO_PortSrc = 1;      // PortB = 1
-    AFIO_Init(&Button2_AFIO);
-
-    // PB4 -> EXTI4
-    Button2_EXTI.Constance = EXTI;
-
-    Button2_EXTI.Config.EXTI_Line = 4;
-    Button2_EXTI.Config.Trigger   = EXTI_TRIGGER_FALLING;
-    Button2_EXTI.Config.PortSrc   = 1;
-    EXTI_Init(&Button2_EXTI);
-}
-void I2C_INIT(void)
-{
-    sda = GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
-    scl = GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_OD);
-
-    i2c1 = I2C_Init(
-        I2C1,
-        100000,
-        I2C_ADDRESSINGMODE_7BIT,
-        0x00,
-        I2C_ACK_ENABLE,
-        I2C_DUTYCYCLE_2
-    );
-    I2C_ScanDevices(&i2c1);
-
-}
-void OLED_Init(void) {
-
-
-    oled.Instance = &i2c1;
-    oled.Config.Address = 0x3C;
-    oled.Config.Width = 128;
-    oled.Config.Height = 32;
-
-    SSD1306_Init(&oled);
-}
 
 

@@ -97,38 +97,48 @@ void TIM2_5_Init(TIMER2_5_Handle_t *hTimerx) {
 
 		break;
 	case TIM_FEATURE_PWM:
-		hTimerx->Instance->PSC = hTimerx->Config.Prs; // (72 MHz / (71 + 1)) = 1 MHz (Timer frequency)
-		hTimerx->Instance->ARR = hTimerx->Config.Arr; // (1 MHz / 50) = 20kHz (PWM frequency)
+	    // Set Prescaler & Auto Reload
+	    hTimerx->Instance->PSC = hTimerx->Config.Prs; // ví dụ: (72MHz / (71+1)) = 1 MHz
+	    hTimerx->Instance->ARR = hTimerx->Config.Arr; // ví dụ: (1 MHz / 50) = 20 kHz PWM
 
-		// Cấu hình PWM Mode 1 cho TIM2 CH1
-		hTimerx->Instance->CCMR1 &= ~0xFF;
-		hTimerx->Instance->CCMR2 &= ~0xFF;
+	    // Force update để load giá trị PSC/ARR mới
+	    hTimerx->Instance->EGR |= (1 << 0); // UG = 1
 
-		if (hTimerx->Config.Channel == TIM_CHANNEL_1) {
-			// Channel 1 (CCMR1)
-			hTimerx->Instance->CCMR1 |= (hTimerx->Config.OCMode << 4) | (hTimerx->Config.OCMode << 12); // OC1M = 110 (PWM Mode 1) cho Channel 1
-			hTimerx->Instance->CCMR1 |= (1 << 3) | (1 << 11); // OC1PE = 1 (PWM with preload) cho Channel 1
-			hTimerx->Instance->CCER |= (1 << 0) | (1 << 4); // CC1E = 1 (Enable output) cho Channel 1
-		}
+	    // Cấu hình theo channel
+	    switch (hTimerx->Config.Channel) {
+	        case TIM_CHANNEL_1:
+	            // Clear OC1M + OC1PE
+	            hTimerx->Instance->CCMR1 &= ~((0x7 << 4) | (1 << 3));
+	            hTimerx->Instance->CCMR1 |= (hTimerx->Config.OCMode << 4) | (1 << 3);
+	            hTimerx->Instance->CCER  |= (1 << 0);  // CC1E enable
+	            break;
 
-		else if (hTimerx->Config.Channel == TIM_CHANNEL_3) {
-			// Channel 3 (CCMR2)
-			hTimerx->Instance->CCMR2 |= (hTimerx->Config.OCMode << 4) | (hTimerx->Config.OCMode << 12); // OC3M = 110 (PWM Mode 1) cho Channel 3
-			hTimerx->Instance->CCMR2 |= (1 << 3)| (1 << 11); // OC3PE = 1 (PWM with preload) cho Channel 3
-			hTimerx->Instance->CCER |= (1 << 8)| (1 << 4); // CC3E = 1 (Enable output) cho Channel 3
+	        case TIM_CHANNEL_2:
+	            hTimerx->Instance->CCMR1 &= ~((0x7 << 12) | (1 << 11));
+	            hTimerx->Instance->CCMR1 |= (hTimerx->Config.OCMode << 12) | (1 << 11);
+	            hTimerx->Instance->CCER  |= (1 << 4);  // CC2E enable
+	            break;
 
-		}
+	        case TIM_CHANNEL_3:
+	            hTimerx->Instance->CCMR2 &= ~((0x7 << 4) | (1 << 3));
+	            hTimerx->Instance->CCMR2 |= (hTimerx->Config.OCMode << 4) | (1 << 3);
+	            hTimerx->Instance->CCER  |= (1 << 8);  // CC3E enable
+	            break;
 
+	        case TIM_CHANNEL_4:
+	            hTimerx->Instance->CCMR2 &= ~((0x7 << 12) | (1 << 11));
+	            hTimerx->Instance->CCMR2 |= (hTimerx->Config.OCMode << 12) | (1 << 11);
+	            hTimerx->Instance->CCER  |= (1 << 12); // CC4E enable
+	            break;
+	    }
 
-		// Enable Auto-reload Preload (ARPE)
-		hTimerx->Instance->CR1 |= (1 << 7);     // ARPE = 1
+	    // Enable Auto-reload Preload (ARPE)
+	    hTimerx->Instance->CR1 |= (1 << 7);
 
-		// Start Timer (Enable counter)
-		hTimerx->Instance->CR1 |= (1 << 0);     // CEN = 1 (Enable counter)
+	    // Enable counter
+	    hTimerx->Instance->CR1 |= (1 << 0);
 
-		// Force update to load all registers (required after changes to ARR or PSC)
-		hTimerx->Instance->EGR |= 1;           // UG = 1 (Generate update event)
-		break;
+	    break;
 		// Có thể thêm các case khác nếu cần
 	default:
 		// Xử lý trường hợp mặc định nếu không khớp với bất kỳ giá trị nào
