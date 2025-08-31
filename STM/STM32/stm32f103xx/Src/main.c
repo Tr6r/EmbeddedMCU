@@ -23,37 +23,75 @@
 
 void SysClock_Init(void);
 void l9110_Init(void);
+void Encorder1_Init(void);
+void Encorder_Init(void);
 
-GPIO_Handle_t  Digital,Pwm;
+GPIO_Handle_t  Digital,Pwm,EnA,EnB;
 RCC_Handle_t hRcc;
 L9110_Handle_t l9110;
-
+TIMER2_5_Handle_t htim4,htim3;
 TIMER_Advance_Handle_t htim1;
+volatile int32_t encoder_total = 0;
 
 int main(void) {
 	SysClock_Init();
 	l9110_Init();
-	L9110_Run(&l9110, L9110_DIRECTION_FORWARD, 35);
-
+	L9110_Run(&l9110, L9110_DIRECTION_FORWARD, 40);
+	Encorder_Init();
 	for (;;) {
+		encoder_total = TIMER3->CNT;
 	}
 }
 void l9110_Init() {
-	Pwm = GPIO_Init(GPIOA, GPIO_PIN_10, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_PP);
-	Digital = GPIO_Init(GPIOA, GPIO_PIN_12, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_OUTPUT_PP);
+	Pwm = GPIO_Init(GPIOB, GPIO_PIN_8, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_AF_PP);
+	Digital = GPIO_Init(GPIOA, GPIO_PIN_15, GPIO_MODE_OUTPUT_10MHz, GPIO_CNF_OUTPUT_PP);
 
-	htim1.Instance = TIMER1;   // Địa chỉ base của TIM1
-	htim1.Config.Feature     = TIM1_FEATURE_PWM;
-	htim1.Config.Prescaler   = 72 - 1;       // PSC = 71 => 1MHz tick (nếu fclk = 72MHz)
-	htim1.Config.AutoReload  = 1000 - 1;     // ARR = 999 => 1kHz PWM
-	htim1.Config.Channel     = TIM1_CHANNEL_3;
-	htim1.Config.OCMode      = TIM1_OCMODE_PWM1;
-	htim1.Config.CompareValue= 500;          // 50% duty
-	TIMER_Advance_Init(&htim1);
+	htim4.Instance = TIMER4;
+	htim4.Config.Feature = TIM_FEATURE_PWM;
+	htim4.Config.Prs   = 72 - 1;       // PSC = 71 => 1MHz tick (nếu fclk = 72MHz)
+	htim4.Config.Arr  = 1000-1;     // ARR = 999 => 1kHz PWM
+	htim4.Config.Channel = TIM_CHANNEL_3;
+	htim4.Config.OCMode = TIM_OCMODE_PWM1;
+	TIM2_5_Init(&htim4);
 
 	l9110.Pwm_Pin = &Pwm;
 	l9110.Digital_Pin = &Digital;
-	l9110.hTIM = &htim1;
+	l9110.hTIM = &htim4;
+
+}
+
+void Encorder_Init(void) {
+
+	EnA = GPIO_Init(GPIOA, GPIO_PIN_6, GPIO_MODE_INPUT,
+			GPIO_CNF_INPUT_FLOATING);
+	EnB = GPIO_Init(GPIOA, GPIO_PIN_7, GPIO_MODE_INPUT,
+			GPIO_CNF_INPUT_FLOATING);
+
+	htim3.Instance = TIMER3;
+	htim3.Config.Feature = TIM_FEATURE_ENCODER_MODE;
+	htim3.Config.Mode = TIM_MODE_UP;
+	htim3.Config.SMode = TIM_ENCODER_MODE_3;
+	htim3.Config.Prs = 0;
+	htim3.Config.Arr = 65535;
+	htim3.Config.Channel = TIM_CHANNEL_1;
+	TIM2_5_Init(&htim3);
+
+}
+void Encorder1_Init(void) {
+
+	EnA = GPIO_Init(GPIOA, GPIO_PIN_8, GPIO_MODE_INPUT,
+			GPIO_CNF_INPUT_FLOATING);
+	EnB = GPIO_Init(GPIOA, GPIO_PIN_9, GPIO_MODE_INPUT,
+			GPIO_CNF_INPUT_FLOATING);
+
+    htim1.Instance = TIMER1;
+    htim1.Config.Feature    = TIM1_FEATURE_ENCODER;
+    htim1.Config.Prescaler  = 0;                  // no prescaler
+    htim1.Config.AutoReload = 0xFFFF;             // max counter
+    htim1.Config.Channel    = TIM1_CHANNEL_1;     // dùng CH3 + CH4
+    htim1.Config.SMode = TIM1_ENCODER_MODE_3;
+
+    TIMER_Advance_Init(&htim1);
 
 }
 void SysClock_Init(void) {

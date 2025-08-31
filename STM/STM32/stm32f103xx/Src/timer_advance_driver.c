@@ -85,52 +85,49 @@ void TIMER_Advance_Init(TIMER_Advance_Handle_t *hTimerAdvance)
         TIMx->CR1 |= (1U << 0);  // CEN
     }
     else if (hTimerAdvance->Config.Feature == TIM1_FEATURE_ENCODER) {
-        /* Encoder config will be in StartEncoder */
-        TIM_TypeDef *TIMx = hTimerAdvance->Instance;
-
         // 1. Clear & set mode (SMS)
-        TIMx->SMCR &= ~(0x7);
-        TIMx->SMCR |= hTimerAdvance->Config.SMode;
+        TIMx->SMCR &= ~0x7;
+        TIMx->SMCR |= hTimerAdvance->Config.SMode; // e.g., 3 = Encoder mode 3
 
-        // 2. Xử lý channel
+        uint32_t ccmr_val, ccer_val;
+
         if (hTimerAdvance->Config.Channel == TIM1_CHANNEL_1
             || hTimerAdvance->Config.Channel == TIM1_CHANNEL_2) {
             // --- Encoder dùng CH1 + CH2 ---
-            TIMx->CCMR1 &= ~((3 << 0) | (3 << 8));  // clear CC1S, CC2S
-            TIMx->CCMR1 |= (1 << 0) | (1 << 8);     // CC1S=01, CC2S=01
+            ccmr_val = TIMx->CCMR1;
+            ccmr_val &= ~((3 << 0) | (3 << 8));  // clear CC1S, CC2S
+            ccmr_val |= (1 << 0) | (1 << 8);     // CC1S=01, CC2S=01
+            ccmr_val |= (0b0011 << 4) | (0b0011 << 12); // IC1F, IC2F
+            TIMx->CCMR1 = ccmr_val;
 
-            // lọc input (IC1F, IC2F)
-            TIMx->CCMR1 |= (0b0011 << 4);   // IC1F
-            TIMx->CCMR1 |= (0b0011 << 12);  // IC2F
+            ccer_val = TIMx->CCER;
+            ccer_val |= (1 << 0) | (1 << 4);  // CC1E + CC2E
+            ccer_val &= ~((1 << 1) | (1 << 5)); // CC1P, CC2P = 0
+            TIMx->CCER = ccer_val;
 
-            // enable CC1E + CC2E
-            TIMx->CCER |= (1 << 0) | (1 << 4);
-
-        } else if (hTimerAdvance->Config.Channel == TIM1_CHANNEL_3
-                   || hTimerAdvance->Config.Channel == TIM1_CHANNEL_4) {
+        } else {
             // --- Encoder dùng CH3 + CH4 ---
-            TIMx->CCMR2 &= ~((3 << 0) | (3 << 8));  // clear CC3S, CC4S
-            TIMx->CCMR2 |= (1 << 0) | (1 << 8);     // CC3S=01, CC4S=01
+            ccmr_val = TIMx->CCMR2;
+            ccmr_val &= ~((3 << 0) | (3 << 8));  // clear CC3S, CC4S
+            ccmr_val |= (1 << 0) | (1 << 8);     // CC3S=01, CC4S=01
+            ccmr_val |= (0b0011 << 4) | (0b0011 << 12); // IC3F, IC4F
+            TIMx->CCMR2 = ccmr_val;
 
-            // lọc input (IC3F, IC4F)
-            TIMx->CCMR2 |= (0b0011 << 4);   // IC3F
-            TIMx->CCMR2 |= (0b0011 << 12);  // IC4F
-
-            // enable CC3E + CC4E
-            TIMx->CCER |= (1 << 8) | (1 << 12);
+            ccer_val = TIMx->CCER;
+            ccer_val |= (1 << 8) | (1 << 12);  // CC3E + CC4E
+            ccer_val &= ~((1 << 9) | (1 << 13)); // CC3P, CC4P = 0
+            TIMx->CCER = ccer_val;
         }
 
-        // 3. Không đảo pha (nếu cần đảo thì set CCxP)
-        TIMx->CCER &= ~((1 << 1) | (1 << 5) | (1 << 9) | (1 << 13));
+        // 2. Set ARR và PSC
+        TIMx->ARR = hTimerAdvance->Config.AutoReload;
+        TIMx->PSC = hTimerAdvance->Config.Prescaler;
 
-        // 4. Set ARR và PSC
-        TIMx->ARR = hTimerAdvance->Config.Arr;
-        TIMx->PSC = hTimerAdvance->Config.Prs;
-
-        // 5. Reset counter + bật timer
+        // 3. Reset counter + bật timer
         TIMx->CNT = 0;
         TIMx->CR1 |= (1 << 0); // CEN=1
     }
+
 
 }
 
