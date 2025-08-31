@@ -68,3 +68,46 @@ void SSD1306_Update(SSD1306_Handle_t *hssd) {
         SSD1306_SendData(hssd, &hssd->Buffer[page * hssd->Config.Width], hssd->Config.Width);
     }
 }
+
+const uint8_t Font5x7[][5] = {
+    // '0'-'9'
+    {0x3E, 0x51, 0x49, 0x45, 0x3E}, // 0
+    {0x00, 0x42, 0x7F, 0x40, 0x00}, // 1
+    {0x42, 0x61, 0x51, 0x49, 0x46}, // 2
+    {0x21, 0x41, 0x45, 0x4B, 0x31}, // 3
+    {0x18, 0x14, 0x12, 0x7F, 0x10}, // 4
+    {0x27, 0x45, 0x45, 0x45, 0x39}, // 5
+    {0x3C, 0x4A, 0x49, 0x49, 0x30}, // 6
+    {0x01, 0x71, 0x09, 0x05, 0x03}, // 7
+    {0x36, 0x49, 0x49, 0x49, 0x36}, // 8
+    {0x06, 0x49, 0x49, 0x29, 0x1E}, // 9
+
+    // ':'
+    {0x00, 0x36, 0x36, 0x00, 0x00}  // :
+};
+void SSD1306_DrawChar(SSD1306_Handle_t *hssd, uint8_t x, uint8_t y, char c, uint8_t color) {
+    const uint8_t *bitmap = NULL;
+    if(c >= '0' && c <= '9') {
+        bitmap = Font5x7[c - '0'];
+    } else if(c == ':') {
+        bitmap = Font5x7[10]; // dấu ':' nằm ở vị trí 10
+    } else {
+        return; // không hỗ trợ ký tự khác
+    }
+
+    for(uint8_t i = 0; i < 5; i++) {
+        uint8_t line = bitmap[i];
+        for(uint8_t j = 0; j < 7; j++) {
+            if(line & 0x01) SSD1306_DrawPixel(hssd, x + i, y + j, color);
+            line >>= 1;
+        }
+    }
+}
+void SSD1306_WriteString(SSD1306_Handle_t *hssd, uint8_t x, uint8_t y, const char *str, uint8_t color) {
+    while(*str) {
+        SSD1306_DrawChar(hssd, x, y, *str, color);
+        x += 6; // 5 pixel + 1 pixel khoảng cách
+        str++;
+    }
+    SSD1306_Update(hssd); // cập nhật màn hình
+}

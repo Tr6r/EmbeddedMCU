@@ -36,5 +36,8 @@ void SSD1306_Init(SSD1306_Handle_t *hssd);
 void SSD1306_Update(SSD1306_Handle_t *hssd);
 void SSD1306_Clear(SSD1306_Handle_t *hssd);
 void SSD1306_DrawPixel(SSD1306_Handle_t *hssd, uint8_t x, uint8_t y, uint8_t color);
+void SSD1306_DrawChar(SSD1306_Handle_t *hssd, uint8_t x, uint8_t y, char c, uint8_t color);
+
+void SSD1306_WriteString(SSD1306_Handle_t *hssd, uint8_t x, uint8_t y, const char *str, uint8_t color);
 
 #endif /* SSD1306_I2C_DRIVER_H_ */
